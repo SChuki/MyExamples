@@ -1,0 +1,139 @@
+<html>
+	<head>
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+        <video id="video" autoplay controls >
+            <source src="demo.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+        <!--本网页主要是数组材质的用法 和materialIndex、texture的属性阵列 旋转 偏移 的相关内容-->
+		<script src="../three.js"></script>
+		<script src="../OrbitControls.js"></script>
+		<script>
+            //"https://cdn.bootcss.com/three.js/r83/three.min.js"
+            var scene = new THREE.Scene();  //构建场景对象
+            //设置相机  （视角 、 长宽比 、远剪切面、近剪切面）
+			var camera = new THREE.PerspectiveCamera( 80, window.innerWidth/window.innerHeight, 0.1, 1000 );
+            //设置渲染器
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );//设置渲染面积
+			document.body.appendChild( renderer.domElement );
+			console.log("777");
+            
+			//世界坐标系  
+			var axesHelper = new THREE.AxesHelper(250);  
+			scene.add(axesHelper);
+
+			
+			//环境光    环境光颜色与网格模型的颜色进行RGB进行乘法运算
+			var ambient = new THREE.AmbientLight(0xffffff);
+			scene.add(ambient);
+            
+            
+
+
+
+            /**
+             * 创建一个canvas对象，并绘制一些轮廓
+             */
+            var canvas = document.createElement("canvas");
+            canvas.width = 512;
+            canvas.height = 128;
+            var c = canvas.getContext('2d');
+            // 矩形区域填充背景
+            c.fillStyle = "#ff0000";
+            c.fillRect(0, 0, 512, 128);
+            c.beginPath();
+            // 文字
+            c.beginPath();
+            c.translate(256,64);
+            c.fillStyle = "#000000"; //文本填充颜色
+            c.font = "bold 58px 宋体"; //字体样式设置
+            c.textBaseline = "middle"; //文本与fillText定义的纵坐标
+            c.textAlign = "center"; //文本居中(以fillText定义的横坐标)
+            c.fillText("技术博客", 0, 0);
+            // canvas画布对象作为CanvasTexture的参数重建一个纹理对象
+            // canvas画布可以理解为一张图片
+            var texture = new THREE.CanvasTexture(canvas);
+            //打印纹理对象的image属性
+            // console.log(texture.image);
+            //矩形平面
+            var geometry = new THREE.PlaneGeometry(128, 32);
+
+            var material = new THREE.MeshPhongMaterial({
+            map: texture, // 设置纹理贴图
+            });
+            // 创建一个矩形平面网模型，Canvas画布作为矩形网格模型的纹理贴图
+            var mesh = new THREE.Mesh(geometry, material);
+
+            //scene.add(mesh);
+            
+            // 创建video对象
+            let video = document.createElement('video');
+            video.src = "./demo.mp4"; // 设置视频地址
+            video.autoplay = "autoplay"; //要设置播放
+            // video对象作为VideoTexture参数创建纹理对象
+            var texture = new THREE.VideoTexture(video);
+            texture.needsUpdate = true;
+            texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
+            texture.minFilter = THREE.LinearFilter;
+            var geometry = new THREE.BoxGeometry(100, 100, 100);
+            var material = new THREE.MeshBasicMaterial({
+            map: texture, // 设置纹理贴图
+            }); //材质对象Material
+            var mesh = new THREE.Mesh(geometry, material); //网格模型对象Mesh
+            scene.add(mesh); //网格模型添加到场景中
+
+            // //加载视频贴图;
+            // var texture = new THREE.VideoTexture(video);
+            // //创建网格;
+            // var geometry = new THREE.BoxGeometry(100, 100, 100);
+            // var material = new THREE.MeshBasicMaterial({
+            //     map: texture,
+            // });
+            // var mesh = new THREE.Mesh(geometry, material);
+            // scene.add(mesh);
+
+
+
+           
+
+
+
+
+
+            //render();
+			//相机的初始位置时（0，0，0）
+            camera.position.x = 200; 
+            camera.position.y = 200; 
+            camera.position.z = 200; //调整相机的位置 垂直与电脑屏幕方向
+
+			var animate = function () { //window的api
+                requestAnimationFrame( animate ); //设置60fps，不使用setInterval的原因是可以在求其他请求时不加载
+                // 使用加减法可以设置不同的运动方向
+                // 设置纹理偏移
+                //texture.offset.x -= 0.06
+				// cube.rotation.x += 0.01;
+                // cube.rotation.y += 0.01;
+				// cube.rotation.z += 0.01;
+				
+				// cube1.rotation.x += 0.01;
+                // cube1.rotation.y += 0.01;
+				renderer.render( scene, camera );
+			};
+			animate();
+
+			function render() {
+			renderer.render(scene,camera);//执行渲染操作
+            }
+            render();
+			var controls = new THREE.OrbitControls(camera,renderer.domElement);//创建控件对象
+			controls.addEventListener('change', render);//监听鼠标、键盘事件
+        </script>
+        <h1>This is first 3d </h1>
+	</body>
+</html>
