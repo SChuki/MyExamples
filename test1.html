@@ -1,0 +1,191 @@
+<html>
+	<head>
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+		 <!--本网页主要是关于多边形 线条渲染 BufferGeometry等相关内容-->
+		<script src="../three.js"></script>
+		<script src="../OrbitControls.js"></script>
+		<script>
+            //"https://cdn.bootcss.com/three.js/r83/three.min.js"
+            var scene = new THREE.Scene();  //构建场景对象
+            //设置相机  （视角 、 长宽比 、远剪切面、近剪切面）
+			var camera = new THREE.PerspectiveCamera( 70, window.innerWidth/window.innerHeight, 0.1, 1000 );
+            //设置渲染器
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );//设置渲染面积
+			document.body.appendChild( renderer.domElement );
+			console.log("777");
+
+			//创建一个Buffer类型几何体对象
+			var geometry = new THREE.BufferGeometry(); //创建一个Buffer类型几何体对象
+			//类型数组创建顶点数据
+			var vertices = new Float32Array([
+			0, 0, 0, //顶点1坐标
+			50, 0, 0, //顶点2坐标
+			0, 100, 0, //顶点3坐标
+			0, 0, 10, //顶点4坐标
+			0, 0, 100, //顶点5坐标
+			50, 0, 10, //顶点6坐标
+			]);
+			// 创建属性缓冲区对象
+			var attribue = new THREE.BufferAttribute(vertices, 3); //3个为一组，表示一个顶点的xyz坐标
+			geometry.attributes.position =attribue;
+			//类型数组创建顶点数据
+			var colors = new Float32Array([
+			1, 0, 0, //顶点1颜色  对应RGB
+			0, 1, 0, //顶点2颜色
+			0, 0, 1, //顶点3颜色
+
+			1, 1, 0, //顶点4颜色
+			0, 1, 1, //顶点5颜色
+			1, 0, 1, //顶点6颜色
+			]);
+			
+			// 设置几何体attributes属性的位置属性
+			geometry.attributes.color = new THREE.BufferAttribute(colors, 3);
+
+			var material = new THREE.PointsMaterial({
+			// 使用顶点颜色数据渲染模型，不需要再定义color属性
+			// color: 0xff0000,
+			vertexColors: THREE.VertexColors, //以顶点颜色为准
+			side: THREE.DoubleSide ,//两面可见
+			size: 10.0 //点对象像素尺寸
+			});
+			
+			var mesh = new THREE.Mesh(geometry, material); //网格模型对象Mesh
+
+			//scene.add(mesh);
+
+			var geometry1 = new THREE.Geometry(); //声明一个几何体对象Geometry
+			var p1 = new THREE.Vector3(50, 0, 0); //顶点1坐标
+			var p2 = new THREE.Vector3(0, 70, 0); //顶点2坐标
+			var p3 = new THREE.Vector3(80, 70, 0); //顶点3坐标
+			//顶点坐标添加到geometry对象
+			geometry1.vertices.push(p1, p2, p3);
+
+			// Color对象表示顶点颜色数据
+			var color1 = new THREE.Color(0x00ff00); //顶点1颜色——绿色
+			var color2 = new THREE.Color(0xff0000); //顶点2颜色——红色
+			var color3 = new THREE.Color(0x0000ff); //顶点3颜色——蓝色
+			//顶点颜色数据添加到geometry对象
+			geometry1.colors.push(color1, color2, color3);
+
+			//材质对象
+			var material1 = new THREE.MeshLambertMaterial({
+			// color: 0xffff00,
+			vertexColors: THREE.VertexColors, //以顶点颜色为准
+			side: THREE.DoubleSide, //两面可见
+			});
+			var mesh1 = new THREE.Mesh(geometry1,material1);
+			scene.add(mesh1);
+
+			// 线条渲染模式
+			var material=new THREE.LineBasicMaterial({
+				color:0xff0000 //线条颜色
+			});//材质对象
+			var line=new THREE.Line(geometry,material);//线条模型对象
+			//scene.add(line);//线条对象添加到场景中
+
+			// 点渲染模式
+			var material = new THREE.PointsMaterial({
+			color: 0xff0000,
+			size: 10.0 //点对象像素尺寸
+			}); //材质对象
+			var points = new THREE.Points(geometry, material); //点模型对象
+			//scene.add(points); //点对象添加到场景中
+
+
+			var geometry = new THREE.BoxGeometry(100, 100, 100); //创建一个立方体几何对象Geometry
+			var material = new THREE.MeshLambertMaterial({
+			color: 0x0000ff,
+			wireframe:true
+			}); //材质对象Material
+			var mesh = new THREE.Mesh(geometry, material); //网格模型对象Mesh
+			//scene.add(mesh);
+
+
+			// //长方体 参数：长，宽，高
+			// var geometry = new THREE.BoxGeometry(100, 100, 100);
+			// // 球体 参数：半径60  经纬度细分数40,40
+			// var geometry = new THREE.SphereGeometry(60, 40, 40);
+			// // 圆柱  参数：圆柱面顶部、底部直径50,50   高度100  圆周分段数
+			// var geometry = new THREE.CylinderGeometry( 50, 50, 100, 25 );
+			// // 正八面体
+			var geometry = new THREE.OctahedronGeometry(50);
+			// // 正十二面体
+			// var geometry = new THREE.DodecahedronGeometry(50);
+			// // 正二十面体
+			// var geometry = new THREE.IcosahedronGeometry(50);
+			
+			var material = new THREE.MeshBasicMaterial( { color: 0xffff00 } ); //设置材料颜色
+			material.opacity = 0.3;
+			material.transparent = true;
+			material.wireframe = true;  //使用框线结构
+			var cube = new THREE.Mesh( geometry, material ); //两者结合
+			cube.translateX(20);
+			scene.add( cube ); //默认情况下，当我们调用scene.add()的时候，物体将会被添加到坐标为(0,0,0)的位置。
+			//specular表示球体网格模型的高光颜色，改颜色的RGB值会与光照颜色的RGB分量相乘， shininess属性可以理解为光照强度的系数
+			var geometry = new THREE.CylinderGeometry(50,20,100,80);
+			var material = new THREE.MeshPhongMaterial({color: 0xff00ff,opacity :0.7 ,transparent:true
+				,specular:0xff4400,shininess:1000});
+			var cube1 = new THREE.Mesh(geometry,material);
+			cube1.position.set(0,0,10);
+			scene.add(cube1);
+			//MeshLambertMaterial 模拟漫反射
+			//MeshPhongMaterial 模拟镜面反射
+			//使用光源反射材料建模时，一定要设置光源。
+			// 辅助坐标系  参数250表示坐标系大小，可以根据场景大小去设置
+			var axesHelper = new THREE.AxesHelper(250);
+			scene.add(axesHelper);
+
+			
+			//环境光    环境光颜色与网格模型的颜色进行RGB进行乘法运算
+			var ambient = new THREE.AmbientLight(0x444444);
+			scene.add(ambient);
+
+			//点光源
+			var point = new THREE.PointLight(0xffffff);
+			point.position.set(400, 200, 300); //点光源位置
+			scene.add(point); //点光源添加到场景中
+
+			var point2 = new THREE.PointLight(0xffffff);
+			point2.position.set(-400, -200, -300); //点光源位置
+			scene.add(point2); //点光源添加到场景中
+			
+
+
+
+			//相机的初始位置时（0，0，0）
+            camera.position.x = 0; 
+            camera.position.y = 0; 
+            camera.position.z = 200; //调整相机的位置 垂直与电脑屏幕方向
+
+			var animate = function () { //window的api
+                requestAnimationFrame( animate ); //设置60fps，不使用setinterval的原因是可以在求其他请求时不加载
+
+				cube.rotation.x += 0.01;
+                cube.rotation.y += 0.01;
+				cube.rotation.z += 0.01;
+				
+				cube1.rotation.x += 0.01;
+                cube1.rotation.y += 0.01;
+				renderer.render( scene, camera );
+			};
+			animate();
+
+			function render() {
+			renderer.render(scene,camera);//执行渲染操作
+			}
+			render();
+			var controls = new THREE.OrbitControls(camera,renderer.domElement);//创建控件对象
+			controls.addEventListener('change', render);//监听鼠标、键盘事件
+        </script>
+        <h1>This is first 3d </h1>
+
+	</body>
+</html>

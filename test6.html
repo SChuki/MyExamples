@@ -1,0 +1,220 @@
+<html>
+	<head>
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+        <!--本网页主要是关于轮廓shape以及拉伸和扫描 ExtrudeGeometry相关内容-->
+		<script src="../three.js"></script>
+		<script src="../OrbitControls.js"></script>
+		<script>
+            //"https://cdn.bootcss.com/three.js/r83/three.min.js"
+            var scene = new THREE.Scene();  //构建场景对象
+            //设置相机  （视角 、 长宽比 、远剪切面、近剪切面）
+			var camera = new THREE.PerspectiveCamera( 70, window.innerWidth/window.innerHeight, 0.1, 1000 );
+            //设置渲染器
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );//设置渲染面积
+			document.body.appendChild( renderer.domElement );
+			console.log("777");
+            
+			//世界坐标系  
+			var axesHelper = new THREE.AxesHelper(250);  
+			scene.add(axesHelper);
+
+			
+			//环境光    环境光颜色与网格模型的颜色进行RGB进行乘法运算
+			var ambient = new THREE.AmbientLight(0x0000ff);
+			scene.add(ambient);
+            
+            // 创建多段线条的顶点数据 
+            var p1 = new THREE.Vector3(-85.35, -35.36)
+            var p2 = new THREE.Vector3(-50, 0, 0);
+            var p3 = new THREE.Vector3(0, 50, 0);
+            var p4 = new THREE.Vector3(50, 0, 0);
+            var p5 = new THREE.Vector3(85.35, -35.36);
+            // 创建线条一：直线
+            let line1 = new THREE.LineCurve3(p1,p2);
+            // 重建线条2：三维样条曲线
+            var curve = new THREE.CatmullRomCurve3([p2, p3, p4]);
+            // 创建线条3：直线
+            let line2 = new THREE.LineCurve3(p4,p5);
+            var CurvePath = new THREE.CurvePath();// 创建CurvePath对象
+            CurvePath.curves.push(line1, curve, line2);// 插入多段线条
+
+            var points = CurvePath.getPoints(200);  //对于已经产生了的曲线数据取点
+            // setFromPoints方法从points中提取数据改变几何体的顶点属性vertices
+            //绘制组合曲线
+            var geometry = new THREE.Geometry(); //声明一个几何体对象Geometry
+            geometry.setFromPoints(points);
+
+            //通过多段曲线路径创建生成管道
+            //通过多段曲线路径创建生成管道，CCurvePath：管道路径 5  密度：100
+            var geometry = new THREE.TubeGeometry(CurvePath, 100, 5, 50, false);
+            
+             //材质对象
+             var material = new THREE.LineBasicMaterial({
+            color: 0x00ff00,
+            wireframe:true
+            });
+            //线条模型对象
+            var line = new THREE.Line(geometry, material);
+            scene.add(line); //线条对象添加到场景中
+            
+            // 创建旋转网格模型
+            var points = [
+                new THREE.Vector2(50,60),
+                new THREE.Vector2(25,0),
+                new THREE.Vector2(25,-60)
+            ];
+            var geometry = new THREE.LatheGeometry(points,50);
+            var material=new THREE.MeshPhongMaterial({
+                color:0x0000ff,//三角面颜色
+                side:THREE.DoubleSide//两面可见
+            });//材质对象
+            material.wireframe = true;//线条模式渲染(查看细分数)
+            var mesh=new THREE.Mesh(geometry,material);//旋转网格模型对象
+            //scene.add(mesh);//旋转网格模型添加到场景中
+            
+
+            //使用shape实现样条插值 
+            var shape = new THREE.Shape();//创建Shape对象
+            var points = [//定位定点
+                new THREE.Vector2(50,60),
+                new THREE.Vector2(25,0),
+                new THREE.Vector2(50,-60)
+            ];
+            shape.splineThru(points);//顶点带入样条插值计算函数
+            var splinePoints = shape.getPoints(20);//插值计算细分数20
+            var geometry = new THREE.LatheGeometry(splinePoints,10);//旋转造型
+            var material=new THREE.MeshPhongMaterial({
+                color:0x0000ff,//三角面颜色
+                side:THREE.DoubleSide//两面可见
+            });//材质对象
+            var mesh=new THREE.Mesh(geometry,material);//旋转网格模型对象
+            //scene.add(mesh);//旋转网格模型添加到场景中
+
+            // 圆弧与直线连接
+            var shape = new THREE.Shape(); //Shape对象
+            var R = 50;
+            // 绘制一个半径为R、圆心坐标(0, 0)的半圆弧
+            shape.absarc(0, 0, R, 0, Math.PI);
+            //从圆弧的一个端点(-R, 0)到(-R, -200)绘制一条直线
+            shape.lineTo(-R, -200);
+            // 绘制一个半径为R、圆心坐标(0, -200)的半圆弧
+            shape.absarc(0, -200, R, Math.PI, 2 * Math.PI);
+            //从圆弧的一个端点(R, -200)到(-R, -200)绘制一条直线
+            shape.lineTo(R, 0);
+            var geometry = new THREE.ShapeGeometry(shape, 30);
+
+            // shape可以理解为一个需要填充轮廓
+            // 所谓填充：ShapeGeometry算法利用顶点计算出三角面face3数据填充轮廓
+            var material=new THREE.MeshBasicMaterial({
+                color:0xffffff,//三角面颜色
+                //wireframe: true
+                side:THREE.DoubleSide//两面可见
+            });//材质对象
+            var mesh=new THREE.Mesh(geometry,material);//旋转网格模型对象
+            scene.add(mesh);//旋转网格模型添加到场景中
+
+            /**
+             * 创建拉伸网格模型
+             */
+            var shape = new THREE.Shape();
+            /**四条直线绘制一个矩形轮廓*/
+            shape.moveTo(0,0);//起点
+            shape.lineTo(0,100);//第2点
+            shape.lineTo(100,100);//第3点
+            shape.lineTo(100,0);//第4点
+            shape.lineTo(0,0);//第5点
+            var geometry = new THREE.ExtrudeGeometry(//拉伸造型
+                shape,//二维轮廓
+                //拉伸参数
+                {
+                    amount:120,//拉伸长度
+                    bevelEnabled:false//无倒角
+                }
+                );
+            var material=new THREE.PointsMaterial({
+            color:0x0000ff,
+            size:5.0//点对象像素尺寸
+            });//材质对象
+            // var material=new THREE.MeshPhongMaterial({
+            //     color:0x0000ff,//三角面颜色
+            // });//材质对象
+            var mesh=new THREE.Points(geometry,material);//点模型对象
+            //scene.add(mesh);//点模型添加到场景中
+
+            /**
+            * 创建扫描网格模型
+            */
+            var shape = new THREE.Shape();
+            /**四条直线绘制一个矩形轮廓*/
+            shape.moveTo(0,0);//起点
+            shape.lineTo(0,10);//第2点
+            shape.lineTo(10,10);//第3点
+            shape.lineTo(10,0);//第4点
+            shape.lineTo(0,0);//第5点
+            /**创建轮廓的扫描轨迹(3D样条曲线)*/
+            var curve = new THREE.SplineCurve3([
+            new THREE.Vector3( -10, -50, -50 ),
+            new THREE.Vector3( 10, 0, 0 ),
+            new THREE.Vector3( 8, 50, 50 ),
+            new THREE.Vector3( -5, 0, 100)
+            ]);
+            var geometry = new THREE.ExtrudeGeometry(//拉伸造型
+            shape,//二维轮廓
+            //拉伸参数
+            {
+                bevelEnabled:false,//无倒角
+                extrudePath:curve,//选择扫描轨迹
+                steps:50//扫描方向细分数
+            }
+            );
+
+            var material=new THREE.MeshBasicMaterial({
+            color:0xff0000
+            //size:5.0//点对象像素尺寸
+            });//材质对象
+            // var material=new THREE.MeshPhongMaterial({
+            //     color:0x0000ff,//三角面颜色
+            // });//材质对象
+            var mesh=new THREE.Mesh(geometry,material);//点模型对象
+            scene.add(mesh);//点模型添加到场景中
+
+
+
+
+
+			//相机的初始位置时（0，0，0）
+            camera.position.x = 0; 
+            camera.position.y = 0; 
+            camera.position.z = 200; //调整相机的位置 垂直与电脑屏幕方向
+
+			var animate = function () { //window的api
+                requestAnimationFrame( animate ); //设置60fps，不使用setInterval的原因是可以在求其他请求时不加载
+
+				cube.rotation.x += 0.01;
+                cube.rotation.y += 0.01;
+				cube.rotation.z += 0.01;
+				
+				cube1.rotation.x += 0.01;
+                cube1.rotation.y += 0.01;
+				renderer.render( scene, camera );
+			};
+			//animate();
+
+			function render() {
+			renderer.render(scene,camera);//执行渲染操作
+			}
+			render();
+			var controls = new THREE.OrbitControls(camera,renderer.domElement);//创建控件对象
+			controls.addEventListener('change', render);//监听鼠标、键盘事件
+        </script>
+        <h1>This is first 3d </h1>
+
+	</body>
+</html>
