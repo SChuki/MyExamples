@@ -1,0 +1,163 @@
+<html>
+	<head>
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+         <!--本网页主要是实现液压支架运动-->
+        <script src="../three.js"></script>
+        <script src="../OrbitControls.js"></script>
+		<script>
+            //"https://cdn.bootcss.com/three.js/r83/three.min.js"
+            var renderer = new THREE.WebGLRenderer();
+            renderer.setSize( window.innerWidth, window.innerHeight );
+            document.body.appendChild( renderer.domElement );
+
+            var camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 500 );
+            camera.position.set( 100,100,100 );//从哪个角度上看 ，当从其他轴看时，坐标发生转动，只转一次。
+            camera.lookAt( 0, 0, 0 );
+
+            var scene = new THREE.Scene();
+            
+            //环境光    环境光颜色与网格模型的颜色进行RGB进行乘法运算
+			var ambient = new THREE.AmbientLight(0xffffff);
+            scene.add(ambient);
+
+            //世界坐标系  
+			var axesHelper = new THREE.AxesHelper(250);  
+			scene.add(axesHelper);
+
+            var allGroup = new THREE.Group();
+            // 底座网格模型  x y z 长 高 宽
+            var bottom1Mesh = boxMesh(80, 8, 30, 0, 4, 0);
+            bottom1Mesh.name = "底座矩形1";
+            var bottom2Mesh = boxMesh(5, 10, 30, -25,12,0);
+            bottom2Mesh.name = "底座矩形2";
+            var bottomGroup = new THREE.Group();
+            bottomGroup.add(bottom1Mesh, bottom2Mesh);
+            bottomGroup.name = "底座" ;
+            scene.add(bottomGroup);
+
+            // 液压圆柱模型
+            var cylinder11Mesh = cylinderMesh(6, 20, -10, 18, 0);
+            cylinder11Mesh.name = "液压圆柱1_1";
+            var cylinder12Mesh = cylinderMesh(4, 15, -10 ,35, 0);
+            cylinder12Mesh.name = "液压圆柱1_2";
+            var cylinder21Mesh = cylinderMesh(6, 20, 15, 18, 0);
+            cylinder21Mesh.name = "液压圆柱2_1";
+            var cylinder22Mesh = cylinderMesh(4, 15, 15 ,35, 0);
+            cylinder22Mesh.name = "液压圆柱2_2";
+            var cylinderGroup = new THREE.Group();
+            cylinderGroup.add(cylinder11Mesh, cylinder12Mesh,cylinder21Mesh,cylinder22Mesh);
+            cylinderGroup.name = "液压支架" ;
+            scene.add(cylinderGroup);
+
+            //顶梁
+            var topMesh = boxMesh(80, 8, 30, 15, 46, 0);
+            topMesh.name = "顶梁";
+            scene.add(topMesh);
+
+            //护帮
+            var guardBoardMesh = boxMesh(45, 10, 30, -35,35,0);
+            guardBoardMesh.name = "护帮";
+            guardBoardMesh.rotateZ(Math.PI/4);//绕x轴旋转π/4Z
+            //guardBoardMesh.translateX(-10);
+            scene.add(guardBoardMesh);
+
+            //连杆
+            var rodCylinder1Mesh = cylinderMesh(3, 18, -40, 13, 0);
+            rodCylinder1Mesh.name = "连杆1";
+            rodCylinder1Mesh.rotateZ(Math.PI/4);//绕x轴旋转π/4Z
+            //rodCylinder1Mesh.translateX(-10);
+            var rodCylinder2Mesh = cylinderMesh(3, 20, -33 ,20, 0);
+            rodCylinder2Mesh.rotateZ(Math.PI/4);//绕x轴旋转π/4Z
+            //rodCylinder2Mesh.translateX(-10);
+            rodCylinder2Mesh.name = "连杆2";
+            var rodCylinderGroup = new THREE.Group();
+            rodCylinderGroup.add(rodCylinder1Mesh, rodCylinder2Mesh);
+            rodCylinderGroup.name = "连杆" ;
+            scene.add(rodCylinderGroup);
+            
+            //侧护
+            var sideGuardMesh = boxMesh(20, 4, 25, 60,40,0);
+            sideGuardMesh.name = "侧护";;
+            sideGuardMesh.rotateZ(-Math.PI/4);//绕x轴旋转π/4Z
+            //sideGuardMesh.translateX(-10);
+            scene.add(sideGuardMesh);
+
+            // 球体网格模型创建函数
+            function sphereMesh(R, x, y, z) {
+            var geometry = new THREE.SphereGeometry(R, 25, 25); //球体几何体
+            var material = new THREE.MeshPhongMaterial({
+                color: 0x0000ff
+            }); //材质对象Material
+            var mesh = new THREE.Mesh(geometry, material); // 创建网格模型对象
+            mesh.position.set(x, y, z);
+            return mesh;
+            }
+
+            // 圆柱体网格模型创建函数
+            function cylinderMesh(R, h, x, y, z) {
+            var geometry = new THREE.CylinderGeometry(R, R, h, 25, 25); //球体几何体
+            var material = new THREE.MeshPhongMaterial({
+                color: 0xff00ff
+            }); //材质对象Material
+            var mesh = new THREE.Mesh(geometry, material); // 创建网格模型对象
+            mesh.position.set(x, y, z);
+            return mesh;
+            }
+
+            // 立方体网格模型创建函数
+            function boxMesh(l, w, h, x,y, z) {
+            var geometry = new THREE.BoxGeometry(l, w, h); //立方体几何体
+            var material = new THREE.MeshPhongMaterial({
+                color: 0x0000ff
+            }); //材质对象Material
+            var mesh = new THREE.Mesh(geometry, material); // 创建网格模型对象
+            mesh.position.set(x, y, z);
+            return mesh;
+            }
+
+
+            var geometry = new THREE.BoxGeometry(20, 20, 20); //创建一个立方体几何对象Geometry
+            var material = new THREE.MeshPhongMaterial({
+            color: 0x0000ff,
+            side: THREE.DoubleSide, //两面可见
+            }); //材质对象Material
+
+            var mesh = new THREE.Mesh(geometry, material); //网格模型对象Mesh
+            //scene.add(mesh);
+
+            var animate = function () { //window的api
+                requestAnimationFrame( animate ); //设置60fps，不使用setInterval的原因是可以在求其他请求时不加载
+                // 使用加减法可以设置不同的运动方向
+				// cube.rotation.x += 0.01;
+                // cube.rotation.y += 0.01;
+				// cube.rotation.z += 0.01;
+				
+				// cube1.rotation.x += 0.01;
+                // cube1.rotation.y += 0.01;
+				renderer.render( scene, camera );
+			};
+			//animate();
+            function render() {
+			renderer.render(scene,camera);//执行渲染操作
+			}
+			render();
+			var controls = new THREE.OrbitControls(camera,renderer.domElement);//创建控件对象
+            controls.addEventListener('change', render);//监听鼠标、键盘事件
+            var angle = 0;
+            function guardBoardRotateDown()
+            {
+                angle = angle+0.1
+                sideGuardMesh.rotation.z = angle;
+                console.log(sideGuardMesh);
+                render();
+            }
+        </script>
+        <button type = "button" onclick="guardBoardRotateDown()">护帮向下</button>
+	</body>
+</html>

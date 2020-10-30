@@ -12,9 +12,12 @@
         </video> -->
         <!--本网页主要是 骨骼动画 包括bone skeleton-->
 		<script src="../three.js"></script>
-		<script src="../OrbitControls.js"></script>
+        <script src="../OrbitControls.js"></script>
+        <!-- 引入obj模型加载库OBJLoader.js -->
+        <script src="../../examples/js/loaders/OBJLoader.js"></script>
+        <!-- 引入obj模型材质加载库MTLLoader.js -->
+        <script src="../../examples/js/loaders/MTLLoader.js"></script>
 		<script>
-            //"https://cdn.bootcss.com/three.js/r83/three.min.js"
             var scene = new THREE.Scene();  //构建场景对象
             //设置相机  （视角 、 长宽比 、远剪切面、近剪切面）
 			var camera = new THREE.PerspectiveCamera( 80, window.innerWidth/window.innerHeight, 0.1, 1000 );
@@ -22,7 +25,6 @@
 			var renderer = new THREE.WebGLRenderer();
 			renderer.setSize( window.innerWidth, window.innerHeight );//设置渲染面积
 			document.body.appendChild( renderer.domElement );
-			console.log("777");
             
 			//世界坐标系  
 			var axesHelper = new THREE.AxesHelper(250);  
@@ -30,26 +32,43 @@
 
 			
 			//环境光    环境光颜色与网格模型的颜色进行RGB进行乘法运算
-			var ambient = new THREE.AmbientLight(0xffffff);
+			var ambient = new THREE.AmbientLight(0xffff00);
 			scene.add(ambient);
             
              /**
              * OBJ和材质文件mtl加载
              */
-            var OBJLoader = new THREE.OBJLoader(); //obj加载器
-            var MTLLoader = new THREE.MTLLoader(); //材质文件加载器
-            MTLLoader.load('./贴图/material.mtl', function(materials) {
+            var objLoader = new THREE.OBJLoader(); //obj加载器
+            var mtlLoader = new THREE.MTLLoader(); //材质文件加载器
+            mtlLoader.load('./底座.mtl', function(materials) {
             // 返回一个包含材质的对象MaterialCreator
             console.log(materials);
             //obj的模型会和MaterialCreator包含的材质对应起来
-            OBJLoader.setMaterials(materials);
-            OBJLoader.load('./贴图/model.obj', function(obj) {
-                console.log(obj);
-                scene.add(obj); //返回的组对象插入场景中
+            objLoader.setMaterials(materials);
+            objLoader.load('./底座.obj', function(obj) {
+                //console.log(obj);
+                
+                var material = new THREE.MeshPhongMaterial({
+                color: 0xff0000, 
+                side: THREE.DoubleSide ,//两面可见
+                wireframe :true
+                });
+
                 // 加载后操作
-                obj.children[0].scale.set(2, 2, 2); //缩放球体网格模型
+                obj.children.forEach(element => {element.scale.set(0.1,0.1,0.1);
+
+                    element.material = material;
+                });
+                //obj.children[0].scale.set(0.1, 0.1, 0.1); //缩放球体网格模型
+                // console.log(obj.children[2].name);
+                // var geometry = obj.children[2].geometry;
+                //console.log(material);
+                //obj.children[2].type="Mesh";
+                //obj.children[2].material=material;
                 // 通过调节参数，地球表面的凹凸感更强
-                obj.children[0].material.normalScale.set(3, 3);
+                //obj.children[0].material.normalScale.set(3, 3);
+                scene.add(obj); //返回的组对象插入场景中
+                console.log(obj);
             })
             })
 
@@ -57,7 +76,7 @@
             
             
 
-            //render();
+            render();
 			//相机的初始位置时（0，0，0）
             camera.position.x = 200; 
             camera.position.y = 200; 
@@ -78,10 +97,10 @@
 			};
 			//animate();
 
-			// function render() {
-			// renderer.render(scene,camera);//执行渲染操作
-            // }
-            // render();
+			function render() {
+			renderer.render(scene,camera);//执行渲染操作
+            }
+            render();
 			var controls = new THREE.OrbitControls(camera,renderer.domElement);//创建控件对象
 			controls.addEventListener('change', render);//监听鼠标、键盘事件
         </script>

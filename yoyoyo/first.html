@@ -1,0 +1,205 @@
+<html>
+
+	<head>
+		<title>My first Three.js app</title>
+		<style>
+			html,
+			body {
+				width: 100%;
+				height: 100%;
+			}
+			
+			body {
+				margin: 0;
+			}
+			
+			canvas {
+				width: 100%;
+				height: 100%
+			}
+		</style>
+	</head>
+
+	<body>
+
+		<script src="js/three.min.js"></script>
+		<script src="js/jquery-1.12.4.js"></script>
+		<script src="../../OrbitControls.js"></script>
+		<script>
+			var scene = new THREE.Scene();
+			var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
+			camera.position.z = 5;
+			camera.position.y = 1;
+			camera.position.x = 1.5;
+			camera.lookAt(new THREE.Vector3(0, 0, 0));
+			scene.add(camera);
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			document.body.appendChild(renderer.domElement);
+			//机器人身体
+			var geometry = new THREE.BoxGeometry(1, 1, 1, 8, 8, 8);
+			var material = new THREE.MeshBasicMaterial({
+					color: 0x00ff00,
+					wireframe: true //这里是为了让其变成网格状态，从而使其更容易观察，默认为false
+				}
+
+			);
+			var cube = new THREE.Mesh(geometry, material);
+			cube.position.y = -1;
+			//机器人头部
+			var head = new THREE.SphereGeometry(0.5, 32, 32);
+			var material = new THREE.MeshBasicMaterial({
+					color: 0x0909FD,
+					wireframe: true
+				}
+
+			);
+			var sp = new THREE.Mesh(head, material);
+			//机器人双腿
+			var geometry = new THREE.BoxGeometry(0.1, 1, 0.1);
+			var material = new THREE.MeshBasicMaterial({
+					color: 0xFF2E67,
+					wireframe: true
+				}
+
+			);
+			var left_leg = new THREE.Mesh(geometry, material);
+			var right_leg = new THREE.Mesh(geometry, material);
+			left_leg.position.x = -0.3;
+			left_leg.position.y = -2;
+			right_leg.position.x = 0.3;
+			right_leg.position.y = -2;
+			//机器人整个手臂
+			var upbox = new THREE.Object3D();
+			upbox.position.x = 0.5;
+			upbox.position.y = -1.0;
+			scene.add(upbox);
+			upbox.add(new THREE.AxisHelper(2));
+			var geometry = new THREE.BoxGeometry(1, 0.1, 0.1);
+			var material = new THREE.MeshBasicMaterial({
+					color: 0xFFff44,
+					wireframe: true
+				}
+
+			);
+			var ge = new THREE.Mesh(geometry, material);
+			ge.position.x = 0.5;
+			ge.position.y = 0;
+			//机器人下臂
+			var box = new THREE.Object3D();
+			box.position.x = 1.0;
+			box.position.y = 0.0;
+			scene.add(box);
+			//box.add(new THREE.AxisHelper(2));
+			var geometry = new THREE.BoxGeometry(0.1, 1, 0.1);
+			var material = new THREE.MeshBasicMaterial({
+					color: 0xFF00ff,
+					wireframe: true
+				}
+
+			);
+			var ge_next = new THREE.Mesh(geometry, material);
+			ge_next.position.x = 0;
+			ge_next.position.y = 0.5;
+			box.add(ge_next);
+			//机器人手掌
+			var handbox = new THREE.Object3D();
+			handbox.position.x = 0;
+			handbox.position.y = 0.0;
+			//scene.add(handbox);
+			handbox.add(new THREE.AxisHelper(2));
+			var geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5, 4, 4, 4);
+			var material = new THREE.MeshBasicMaterial({
+					color: 0xFF0f07,
+					wireframe: true
+				}
+
+			);
+			var hand = new THREE.Mesh(geometry, material);
+			hand.position.x = 0;
+			hand.position.y = 1.2;
+			//机器人中指
+			var zhongzhibox = new THREE.Object3D();
+			zhongzhibox.position.x = 0;
+			zhongzhibox.position.y = 1.5;
+			scene.add(zhongzhibox);
+			//zhongzhibox.add(new THREE.AxisHelper(2));
+			var geometry = new THREE.BoxGeometry(0.1, 0.5, 0.1);
+			var material = new THREE.MeshBasicMaterial({
+					color: 0xf49ff0,
+					wireframe: true
+				}
+
+			);
+			var zhongzhi = new THREE.Mesh(geometry, material);
+			zhongzhi.position.y = 0.2;
+			scene.add(cube);
+			scene.add(sp);
+			scene.add(ge);
+			scene.add(ge_next);
+			scene.add(hand);
+			scene.add(zhongzhi);
+			scene.add(left_leg);
+			scene.add(right_leg);
+			angle = 0;
+			angle1 = 0;
+			angle2 = 0;
+			angle3 = 0;
+			onkeydown = function(event) {
+				if(angle > 0 || angle <= -1.5) {
+					angle = 0;
+					return false;
+				}
+				if(angle1 > 0 || angle1 <= -1.5) {
+					angle1 = 0;
+					return false;
+				}
+				if(angle2 >= 180 || angle2 <= -180) {
+					angle2 = 0;
+					return false;
+				}
+				if(angle3 >= 180 || angle3 <= -180) {
+					angle3 = 0;
+					return false;
+				}
+				if(event.keyCode == 40) {
+					angle += 0.2;
+				} else if(event.keyCode == 38) {
+					angle -= 0.2;
+				} else if(event.keyCode == 87) {
+					angle1 += 0.2;
+				} else if(event.keyCode == 83) {
+					angle1 -= 0.2
+				} else if(event.keyCode == 37) {
+					angle2 += 0.2;
+				} else if(event.keyCode == 39) {
+					angle2 -= 0.2;
+				} else if(event.keyCode == 65) {
+					angle3 += 0.2;
+				} else if(event.keyCode == 68) {
+					angle3 -= 0.2;
+				}
+			}
+
+			var render = function() {
+				requestAnimationFrame(render);
+				upbox.add(ge);
+				upbox.add(box);
+				box.add(ge_next);
+				box.add(handbox);
+				box.add(zhongzhibox);
+				handbox.add(hand);
+				zhongzhibox.add(zhongzhi);
+				box.rotation.z = angle;
+				handbox.rotation.y = angle2;
+				zhongzhibox.rotation.x = angle1;
+				upbox.rotation.x = angle3;
+				renderer.render(scene, camera);
+			}
+			render();
+			var controls = new THREE.OrbitControls(camera,renderer.domElement);//创建控件对象
+			controls.addEventListener('change', render);//监听鼠标、键盘事件
+		</script>
+	</body>
+
+</html>
