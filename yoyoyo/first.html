@@ -89,7 +89,7 @@
 			var box = new THREE.Object3D();
 			box.position.x = 1.0;
 			box.position.y = 0.0;
-			scene.add(box);
+			//scene.add(box);
 			//box.add(new THREE.AxisHelper(2));
 			var geometry = new THREE.BoxGeometry(0.1, 1, 0.1);
 			var material = new THREE.MeshBasicMaterial({
@@ -105,7 +105,7 @@
 			//机器人手掌
 			var handbox = new THREE.Object3D();
 			handbox.position.x = 0;
-			handbox.position.y = 0.0;
+			handbox.position.y = 1;
 			//scene.add(handbox);
 			handbox.add(new THREE.AxisHelper(2));
 			var geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5, 4, 4, 4);
@@ -117,12 +117,12 @@
 			);
 			var hand = new THREE.Mesh(geometry, material);
 			hand.position.x = 0;
-			hand.position.y = 1.2;
+			hand.position.y = 0.2;
 			//机器人中指
 			var zhongzhibox = new THREE.Object3D();
 			zhongzhibox.position.x = 0;
-			zhongzhibox.position.y = 1.5;
-			scene.add(zhongzhibox);
+			zhongzhibox.position.y = 0.5;
+			//scene.add(zhongzhibox);
 			//zhongzhibox.add(new THREE.AxisHelper(2));
 			var geometry = new THREE.BoxGeometry(0.1, 0.5, 0.1);
 			var material = new THREE.MeshBasicMaterial({
@@ -145,6 +145,7 @@
 			angle1 = 0;
 			angle2 = 0;
 			angle3 = 0;
+			angle4 = 0;
 			onkeydown = function(event) {
 				if(angle > 0 || angle <= -1.5) {
 					angle = 0;
@@ -162,22 +163,30 @@
 					angle3 = 0;
 					return false;
 				}
-				if(event.keyCode == 40) {
+				if(angle4 >= 180 || angle4 <= -180) {
+					angle4 = 0;
+					return false;
+				}
+				if(event.keyCode == 40) { // (
 					angle += 0.2;
-				} else if(event.keyCode == 38) {
+				} else if(event.keyCode == 38) {//&
 					angle -= 0.2;
-				} else if(event.keyCode == 87) {
+				} else if(event.keyCode == 87) { //W
 					angle1 += 0.2;
-				} else if(event.keyCode == 83) {
+				} else if(event.keyCode == 83) {//S
 					angle1 -= 0.2
-				} else if(event.keyCode == 37) {
+				} else if(event.keyCode == 37) {//%
 					angle2 += 0.2;
-				} else if(event.keyCode == 39) {
+				} else if(event.keyCode == 39) {//'
 					angle2 -= 0.2;
-				} else if(event.keyCode == 65) {
+				} else if(event.keyCode == 65) {  //A
 					angle3 += 0.2;
-				} else if(event.keyCode == 68) {
+				} else if(event.keyCode == 68) {  //D
 					angle3 -= 0.2;
+				}else if(event.keyCode == 90) {  //Z
+					angle4 -= 0.2;
+				}else if(event.keyCode == 88) {  //X
+					angle4 += 0.2;
 				}
 			}
 
@@ -187,13 +196,16 @@
 				upbox.add(box);
 				box.add(ge_next);
 				box.add(handbox);
-				box.add(zhongzhibox);
+				//box.add(zhongzhibox);
 				handbox.add(hand);
+				handbox.add(zhongzhibox)
 				zhongzhibox.add(zhongzhi);
 				box.rotation.z = angle;
 				handbox.rotation.y = angle2;
 				zhongzhibox.rotation.x = angle1;
 				upbox.rotation.x = angle3;
+				handbox.rotation.x = angle4;
+
 				renderer.render(scene, camera);
 			}
 			render();
