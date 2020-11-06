@@ -137,14 +137,9 @@
             var zhijiaGroup = new THREE.Group();
             zhijiaGroup.add(moveBox,bodyBox)
 
-            
-            var zhijiaGroup1 = zhijiaGroup.clone();//克隆网格模型
-            zhijiaGroup1.translateZ(50);//网格模型mesh平移
-
             // moveBox.scale.set(1.5,1.5,1.5);//几何体缩放
-            scene.add(zhijiaGroup,zhijiaGroup1);
+            scene.add(zhijiaGroup);
             // moveBox.translateY(0)
-
 
 
             // var box=new THREE.BoxGeometry(40,40,40);//创建一个立方体几何对象
@@ -177,7 +172,12 @@
                 this.立柱操作 = 0;
                 this.推溜操作 = 0;
                 this.拉架操作 = 0;
-                this.操作架号 = 0;
+                this.操作架号 = 1;
+                this.一键生成 = 1;
+                this.间距控制 = 50;
+                this.成组控制 = false;
+                this.hello = function() {alert("欢迎访问 hangge.com");};  //使用按键触发
+                this.组控成员 = "" //输入触发
                 this.camera_rotation = '[0, 1, 0]';
             };
             //使用.listen() 可以从外部改变control的值
@@ -187,7 +187,12 @@
             gui.add(control, '立柱操作', -5, 10).min(-5).max(10).step(1);
             gui.add(control, '推溜操作', 0, 30).step(1).listen();
             gui.add(control, '拉架操作', 0, 30).step(1).listen();
-            gui.add(control, '操作架号', 0, 1).step(1).listen();
+            gui.add(control, '操作架号', 1, 10).step(1).listen();
+            gui.add(control, '一键生成', 1, 10).step(1).listen();
+            gui.add(control, '间距控制', 25, 100).step(25).listen();
+            gui.add(control, '成组控制').listen();
+            gui.add(control, 'hello'); 
+            gui.add(control, '组控成员').listen();
             gui.add(control,'camera_rotation', {'不旋转': '[0, 1, 0]', '45度': '[1, 1, 0]', '90度': '[1, 0, 0]'}).onChange(val => {
                 var parse = JSON.parse(val);
                 camera.up.x=parse[0];
@@ -195,6 +200,7 @@
                 camera.up.z=parse[2];
                 renderer.render( scene, camera );
             });
+            gui.remember(control);
             }
             
            
@@ -231,11 +237,94 @@
             mesh.position.set(x, y, z);
             return mesh;
             }
+            //定义支架状态数据
+            var bracketStates={
+                guardBoardAngle: 0,  //护帮旋转角度
+                sideGuardAngle: 0,  //侧护旋转角度
+                moveDistance: 0,  //推溜行程
+                bodyMoveDistance: 0,  //拉架行程
+                cylinderDistance: 0,  //立柱移动距离
+                rodAngle: 0,  //连杆旋转角度
+            };
+            var Brackets=new Array();
+            Brackets[0] = bracketStates;
+
             //余弦定理
             function cosFunc(a,b,c)
             {
                 cosA = (b**2+c**2-a**2)/(2*b*c)
                 return cosA;
+            }
+            //支架操作
+            function bracketOperation(NUM)
+            {
+                tempAngle = Brackets[NUM-2].guardBoardAngle;
+                tempY = Brackets[NUM-2].cylinderDistance;
+                tempX = Brackets[NUM-2].moveDistance;
+                moveTempX = Brackets[NUM-2].bodyMoveDistance;
+
+                if(control.护帮操作 != tempAngle)
+                {
+                    console.log("ok");
+                    scene.children[NUM].getObjectByName("护帮").rotation.z = control.护帮操作;
+                    Brackets[NUM-2].guardBoardAngle =control.护帮操作;
+                }
+                
+                //调试时注意rotation.x=N,表示在最初的本地坐标旋转了N度，rotationX(N)表示在现在基础上又旋转了好多度。
+                // oldRotateTop = Math.PI/4;
+                // oldRotateRod = Math.PI/4;
+                oldRotateTop = 0;
+                oldRotateRod = 0;
+                
+                //立柱操作
+                if (control.立柱操作 != tempY) 
+                {
+                    scene.children[NUM].getObjectByName("上顶").translateY(control.立柱操作-tempY);
+                    scene.children[NUM].getObjectByName("液压圆柱1_2").translateY(control.立柱操作-tempY);
+                    scene.children[NUM].getObjectByName("液压圆柱2_2").translateY(control.立柱操作-tempY);
+
+                    let a = 36.2 , b = 15 , c = Math.pow(((control.立柱操作 + 36.2)**2 +15**2),1/2);
+                    x1 = Math.acos(cosFunc(a,b,c));
+                    x2 = Math.abs(Math.atan((36.2 +control.立柱操作)/15));
+                    //console.log(x1+x2);
+                    var temp1 = x1+x2 - Math.PI/2 ;
+                    scene.children[NUM].getObjectByName("连杆").rotation.z = (temp1 - oldRotateRod);
+                    //console.log(temp1 - oldRotateRod);
+                    oldRotateRod = temp1;
+
+                    y1 = Math.acos(cosFunc(b,a,c));
+                    y2 = Math.abs(Math.atan(15/(36.2 +control.立柱操作)));
+                    //console.log(y1+y2);
+                    var temp2 =  Math.PI/2 - y1 - y2;
+                    scene.children[NUM].getObjectByName("侧护").rotation.z = (temp2- oldRotateTop);
+                    //console.log(temp2 - oldRotateTop);
+                    oldRotateTop = temp2;
+                    Brackets[NUM-2].cylinderDistance =control.立柱操作;
+                }
+                if(control.推溜操作 != tempX)
+                {
+                    scene.children[NUM].getObjectByName("推杆").translateX(control.推溜操作-tempX);
+                    if(moveTempX>0)
+                    {
+                        control.拉架操作 = control.拉架操作-(control.推溜操作- tempX);
+                        Brackets[NUM-2].bodyMoveDistance =control.拉架操作;
+                    }
+                    Brackets[NUM-2].moveDistance =control.推溜操作;
+                }
+                if(tempX>0 && control.拉架操作!=moveTempX )
+                {
+                    scene.children[NUM].getObjectByName("主体").translateX(control.拉架操作 - moveTempX);
+                    control.推溜操作 = control.推溜操作-(control.拉架操作- moveTempX);
+                    Brackets[NUM-2].moveDistance =control.推溜操作;
+                    Brackets[NUM-2].bodyMoveDistance =control.拉架操作;
+                    //console.log("正常进入函数！");
+                }
+            }
+
+            /*校验是否全由8位数字组成 */
+            function isNo(str) {
+                var reg=/^[0-9]{1,3}$/;   /*定义验证表达式*/
+                return reg.test(str);     /*进行验证*/
             }
 
 
@@ -255,64 +344,97 @@
             var tempY=0;//立柱操作
             var tempX=0;//推溜操作
             var moveTempX = 0; //移架操作
+            var cloneNum = 1;//克隆支架数
+            var tempBool = false;
+            var oldNum = 1;
             //最大极限为53
 
             var animate = function () { //window的api
-                requestAnimationFrame( animate ); //设置60fps，不使用setInterval的原因是可以在求其他请求时不加载
-                //护帮操作
-                var NUM = control.操作架号+2;
-                angle1 = control.护帮操作;
-                scene.children[NUM].getObjectByName("护帮").rotation.z = angle1;
-                //调试时注意rotation.x=N,表示在最初的本地坐标旋转了N度，rotationX(N)表示在现在基础上又旋转了好多度。
-                // oldRotateTop = Math.PI/4;
-                // oldRotateRod = Math.PI/4;
-                oldRotateTop = 0;
-                oldRotateRod = 0;
                 
-                //立柱操作
-                if (control.立柱操作 != tempY)
+                requestAnimationFrame( animate ); //设置60fps，不使用setInterval的原因是可以在求其他请求时不加载
+                //切换控制方式初始化
+                // if(control.成组控制!=tempBool)
+                // {
+                //     if(control.成组控制 != true)
+                //     {
+                //         control.护帮操作 = Brackets[control.操作架号+1-2].guardBoardAngle;
+                //         control.拉架操作 = Brackets[control.操作架号+1-2].bodyMoveDistance;
+                //         control.立柱操作 = Brackets[control.操作架号+1-2].cylinderDistance;
+                //         control.推溜操作 = Brackets[control.操作架号+1-2].moveDistance;
+                //     }
+                //     tempBool =control.成组控制;
+                // }
+                // if(control.操作架号 != oldNum)
+                // {
+                //     console.log("ok");
+                //     control.护帮操作 = Brackets[control.操作架号+1-2].guardBoardAngle;
+                //     control.拉架操作 = Brackets[control.操作架号+1-2].bodyMoveDistance;
+                //     control.立柱操作 = Brackets[control.操作架号+1-2].cylinderDistance;
+                //     control.推溜操作 = Brackets[control.操作架号+1-2].moveDistance;
+                //     oldNum = control.操作架号;
+                // }
+                //一键生成
+                if(control.一键生成!=cloneNum)
                 {
-                    scene.children[NUM].getObjectByName("上顶").translateY(control.立柱操作-tempY);
-                    scene.children[NUM].getObjectByName("液压圆柱1_2").translateY(control.立柱操作-tempY);
-                    scene.children[NUM].getObjectByName("液压圆柱2_2").translateY(control.立柱操作-tempY);
-
-                    let a = 36.2 , b = 15 , c = Math.pow(((control.立柱操作 + 36.2)**2 +15**2),1/2);
-                    x1 = Math.acos(cosFunc(a,b,c));
-                    x2 = Math.abs(Math.atan((36.2 +control.立柱操作)/15));
-                    console.log(x1+x2);
-                    var temp1 = x1+x2 - Math.PI/2 ;
-                    scene.children[NUM].getObjectByName("连杆").rotation.z = (temp1 - oldRotateRod);
-                    console.log(temp1 - oldRotateRod);
-                    oldRotateRod = temp1;
-
-                    y1 = Math.acos(cosFunc(b,a,c));
-                    y2 = Math.abs(Math.atan(15/(36.2 +control.立柱操作)));
-                    console.log(y1+y2);
-                    var temp2 =  Math.PI/2 - y1 - y2;
-                    scene.children[NUM].getObjectByName("侧护").rotation.z = (temp2- oldRotateTop);
-                    console.log(temp2 - oldRotateTop);
-                    oldRotateTop = temp2;
-                    tempY =control.立柱操作;
-                }
-                if(control.推溜操作 != tempX)
-                {
-                    scene.children[NUM].getObjectByName("推杆").translateX(control.推溜操作-tempX);
-                    if(moveTempX>0)
+                    if(control.一键生成>cloneNum)
                     {
-                        control.拉架操作 = control.拉架操作-(control.推溜操作- tempX);
-                        moveTempX =control.拉架操作;
+                        for(let i =1;i<control.一键生成-cloneNum+1;i++)
+                        {
+                            let zhijiaGroup1 = zhijiaGroup.clone();//克隆网格模型
+                            zhijiaGroup1.translateZ(control.间距控制*(i+cloneNum-1));//网格模型mesh平移
+                            // moveBox.scale.set(1.5,1.5,1.5);//几何体缩放
+                            scene.add(zhijiaGroup1);
+                            Brackets.push(bracketStates);
+                        }
+                    }else
+                    {
+                        for(let i =0; i<cloneNum-control.一键生成;i++)
+                        {
+                            scene.remove(scene.children[2+cloneNum -i-1]);
+                            Brackets.pop();
+                        }
                     }
-                    tempX =control.推溜操作;
+                    cloneNum = control.一键生成;
                 }
-                if(tempX>0 && control.拉架操作!=moveTempX )
+                //成组控制
+                if(control.成组控制 == true)
                 {
-                    scene.children[NUM].getObjectByName("主体").translateX(control.拉架操作 - moveTempX);
-                    control.推溜操作 = control.推溜操作-(control.拉架操作- moveTempX);
-                    tempX =control.推溜操作;
-                    moveTempX =control.拉架操作;
-                    console.log("正常进入函数！");
-                }
+                    if(control.组控成员!='')
+                    {
+                        let tempArray = control.组控成员.split(',');
+                        for(let j=0;j<tempArray.length;j++)
+                        {
+                            if(tempArray[j].includes('-'))
+                            {
+                                let subTempArray = tempArray[j].split('-');
+                                if(subTempArray.length!=2)
+                                {
+                                    alert("组控成员填写错误，格式例如：7-9");
+                                }else
+                                {
+                                    //console.log(subTempArray[0]);
+                                    //console.log(isNo(subTempArray[0]));
+                                    if(isNo(subTempArray[0])==true && isNo(subTempArray[1])==true)
+                                    {
+                                        for(let startNum = parseInt(subTempArray[0]);startNum <parseInt(subTempArray[1])+1;startNum++ )
+                                        {
+                                            bracketOperation(startNum+1);
+                                        }
+                                    }else
+                                    {
+                                        alert("组控成员填写错误，格式例如：7-9");
+                                    }
+                                }
+                            }
+                        }
+                    }
 
+                }
+                else //单架控制
+                {
+                    var bracketNum = control.操作架号+1;
+                    bracketOperation(bracketNum)
+                }
 				renderer.render( scene, camera );
 			};
             animate();
