@@ -10,7 +10,7 @@
         <!-- <video id="video" autoplay controls >
             <source src="demo.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
         </video> -->
-        <!--本网页主要是 骨骼动画 包括bone skeleton-->
+        <!--本网页主要是 动画 -->
 		<script src="../three.js"></script>
 		<script src="../OrbitControls.js"></script>
 		<script>
@@ -76,7 +76,7 @@
             */
             var mixer = new THREE.AnimationMixer(mesh); //创建混合器
             var AnimationAction = mixer.clipAction(clip); //返回动画操作对象
-            AnimationAction.timeScale = 5; //默认1，可以调节播放速度
+            AnimationAction.timeScale = 1; //默认1，可以调节播放速度
             // AnimationAction.loop = THREE.LoopOnce; //不循环播放
             // AnimationAction.clampWhenFinished=true;//暂停在最后一帧播放的状态
             AnimationAction.play(); //开始播放
@@ -119,7 +119,7 @@
                 // cube1.rotation.y += 0.01;
 				renderer.render( scene, camera );
 			};
-			//animate();
+			animate();
 
 			// function render() {
 			// renderer.render(scene,camera);//执行渲染操作

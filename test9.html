@@ -10,7 +10,7 @@
         <!-- <video id="video" autoplay controls >
             <source src="demo.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
         </video> -->
-        <!--本网页主要是纹理贴图的相关内容 高光 法线 凹凸 光线 环境贴图-->
+        <!--本网页主要是纹理贴图的相关内容 视频 高光 法线 凹凸 光线 环境贴图-->
 		<script src="../three.js"></script>
 		<script src="../OrbitControls.js"></script>
 		<script>
@@ -89,7 +89,7 @@
             map: texture, // 设置纹理贴图
             }); //材质对象Material
             var mesh = new THREE.Mesh(geometry, material); //网格模型对象Mesh
-            //scene.add(mesh); //网格模型添加到场景中
+            scene.add(mesh); //网格模型添加到场景中
             
 
             //法线贴图
@@ -162,9 +162,8 @@
             });
             console.log(CubeTexture.image);
             var mesh = new THREE.Mesh(geometry, material); //网格模型对象Mesh
-            scene.add(mesh); //网格模型添加到场景中
+           //scene.add(mesh); //网格模型添加到场景中
            
-
 
 
 

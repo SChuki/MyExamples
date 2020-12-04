@@ -198,15 +198,15 @@
 			var animate = function () { //window的api
                 requestAnimationFrame( animate ); //设置60fps，不使用setInterval的原因是可以在求其他请求时不加载
 
-				cube.rotation.x += 0.01;
-                cube.rotation.y += 0.01;
-				cube.rotation.z += 0.01;
+				// cube.rotation.x += 0.01;
+                // cube.rotation.y += 0.01;
+				// cube.rotation.z += 0.01;
 				
-				cube1.rotation.x += 0.01;
-                cube1.rotation.y += 0.01;
+				// cube1.rotation.x += 0.01;
+                // cube1.rotation.y += 0.01;
 				renderer.render( scene, camera );
 			};
-			//animate();
+			animate();
 
 			function render() {
 			renderer.render(scene,camera);//执行渲染操作

@@ -66,12 +66,12 @@
             var times = [0, 10]; //关键帧时间数组，离散的时间点序列
             var values = [0, 0, 0, 230, 0, 0]; //与时间点对应的值组成的数组
             // 创建位置关键帧对象：0时刻对应位置0, 0, 0   10时刻对应位置150, 0, 0
-            var posTrack = new THREE.KeyframeTrack('Box.position', times, values);
-            var quaternionTrack = new THREE.KeyframeTrack('Box.quaternion',[0,20],[0,0,0,0,1,1,1,1])
+            var posTrack = new THREE.KeyframeTrack('Box.position', times, values); //位置变换 空间坐标 x y z
+            var quaternionTrack = new THREE.KeyframeTrack('Box.quaternion',[0,20],[0,0,0,0,1,1,1,1]) //旋转四元数  x y z w 
             // 创建颜色关键帧对象：10时刻对应颜色1, 0, 0   20时刻对应颜色0, 0, 1
-            var colorKF = new THREE.KeyframeTrack('Box.material.color', [10, 20], [1, 0, 0, 0, 0, 1]);
+            var colorKF = new THREE.KeyframeTrack('Box.material.color', [10, 20], [1, 0, 0, 0, 0, 1]); //颜色变化 r g b
             // 创建名为Sphere对象的关键帧数据  从0~20时间段，尺寸scale缩放3倍
-            var scaleTrack = new THREE.KeyframeTrack('Sphere.scale', [0, 20], [1, 1, 1, 2.5,2.5, 2.5]);
+            var scaleTrack = new THREE.KeyframeTrack('Sphere.scale', [0, 20], [1, 1, 1, 2.5,2.5, 2.5]);//大小变化 x y z 方向
 
             // duration决定了默认的播放时间，一般取所有帧动画的最大时间
             // duration偏小，帧动画数据无法播放完，偏大，播放完帧动画会继续空播放
