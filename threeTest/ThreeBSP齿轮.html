@@ -1,0 +1,193 @@
+<html>
+	<head>
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+        <!--本网页主要是 介绍交集 并集 差集生成几何体-->
+
+		<script src="../../three.js"></script>
+		<script src="../../OrbitControls.js"></script>
+        <script src="../../ThreeBSP.js"></script>   
+        <script src="../../SceneUtils.js"></script>   
+        <script src="../../ConvexGeometry.js"></script>
+        <script src="../../ConvexHull.js"></script>  
+
+		<script >
+            var renderer;
+            function initRender() {
+                renderer = new THREE.WebGLRenderer({antialias:true});
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                document.body.appendChild(renderer.domElement);
+            }
+
+            var camera;
+            function initCamera() {
+                camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
+                camera.position.set(0, 100, 200);
+                camera.lookAt(0, 0, 0);
+            }
+
+            var scene;
+            function initScene() {
+                scene = new THREE.Scene();
+            }
+
+            var light;
+            function initLight() {
+                ambientLight = new THREE.AmbientLight(0xeeeeee);
+                scene.add(ambientLight);
+
+                spotLight = new THREE.SpotLight(0xeeeeee);
+                spotLight.position.set(0, 200, 50);
+                scene.add(spotLight);
+            }
+
+            function initModel() {
+                var material = new THREE.MeshPhongMaterial({color: 0x2C85E1, shininess: 60, specular: 0x2C85E1})
+
+                var material1 = new THREE.MeshPhongMaterial({color: 0xff0000, shininess: 60, specular: 0x2C85E1})
+                var material2 = new THREE.MeshPhongMaterial({color: 0x00ff00, shininess: 60, specular: 0x2C85E1})
+                var material3 = new THREE.MeshPhongMaterial({color: 0x0000ff, shininess: 60, specular: 0x2C85E1})
+                var material4 = new THREE.MeshPhongMaterial({color: 0xffff00, shininess: 60, specular: 0x2C85E1})
+                var material5 = new THREE.MeshPhongMaterial({color: 0xff00ff, shininess: 60, specular: 0x2C85E1})
+
+                var cylinGeom1 = new THREE.CylinderGeometry(40, 40, 10, 50)
+                var cylinMesh1 = new THREE.Mesh(cylinGeom1, material5);
+                cylinMesh1.position.y = 5;
+
+                var cylinGeom2 = new THREE.CylinderGeometry(28, 28, 14, 50)
+                var cylinMesh2 = new THREE.Mesh(cylinGeom2, material1);
+                cylinMesh2.position.y = 7;
+
+                var cylinGeom3 = new THREE.CylinderGeometry(20, 20, 22, 50)
+                var cylinMesh3 = new THREE.Mesh(cylinGeom3, material2);
+                cylinMesh3.position.y = 11;
+
+                var cylinGeom4 = new THREE.CylinderGeometry(10, 10, 24, 50)
+                var cylinMesh4 = new THREE.Mesh(cylinGeom4, material3);
+                cylinMesh4.position.y = 12;
+
+                var pointsArr = [[5, -1, 33], [5, 11, 33], [-5, -1, 33], [-5, 11, 33], [20, -1, 66], [20, 11, 66], [-20, -1, 66], [-20, 11, 66]];
+                var points = pointsArr.map(d => new THREE.Vector3(d[0],d[1],d[2]));
+                var tixing = new THREE.ConvexGeometry(points);
+                var tixingMesh = new THREE.Mesh(tixing, material4);
+
+                var meshArray = [];
+                for(var i=0; i<8; i++) {
+                    tixingMesh.rotation.y = Math.PI / 4 * i;
+                    meshArray[i] = tixingMesh.clone()
+                }
+
+                var cylinBSP1 = new ThreeBSP(cylinMesh1);
+                var cylinBSP2 = new ThreeBSP(cylinMesh2);
+                var cylinBSP3 = new ThreeBSP(cylinMesh3);
+                var cylinBSP4 = new ThreeBSP(cylinMesh4);
+
+                var resultBSP = cylinBSP1.union(cylinBSP2).union(cylinBSP3).subtract(cylinBSP4);
+                for(var i=0; i<8; i++) {
+                    resultBSP = resultBSP.subtract( new ThreeBSP(meshArray[i]) );
+                }
+                result = resultBSP.toMesh();
+                result.material = new THREE.MeshPhongMaterial({color: 0x2C85E1, shininess: 60, specular: 0x2C85E1});
+                result.position.y = 20;
+                scene.add(result);
+
+                // cylinMesh1.position.set(-100,-40,0);
+                // scene.add(cylinMesh1);
+                // cylinMesh2.position.set(0,-40,100);
+                // scene.add(cylinMesh2);
+                // cylinMesh3.position.set(100, -40, 0);
+                // scene.add(cylinMesh3);
+                // cylinMesh4.position.set(0,-40,-100);
+                // scene.add(cylinMesh4);
+                // tixingMesh.position.set(40, -45, -50)
+                // scene.add(tixingMesh);
+
+                // cylinMesh1.position.set(-150,0,0);
+                // scene.add(cylinMesh1);
+                // cylinMesh2.position.set(-60,0,0);
+                // scene.add(cylinMesh2);
+                // cylinMesh3.position.set(0,0,0);
+                // scene.add(cylinMesh3);
+                // cylinMesh4.position.set(50,0,0);
+                // scene.add(cylinMesh4);
+                // tixingMesh.position.set(150,0,-40);
+                // scene.add(tixingMesh);
+            }
+
+            
+
+            //初始化性能插件
+            // var stats;
+            // function initStats() {
+            //     stats = new Stats();
+            //     document.body.appendChild(stats.dom);
+            // }
+
+            //用户交互插件 鼠标左键按住旋转，右键按住平移，滚轮缩放
+            var controls;
+            function initControls() {
+
+                controls = new THREE.OrbitControls( camera, renderer.domElement );
+
+                // 如果使用animate方法时，将此函数删除
+                //controls.addEventListener( 'change', render );
+                // 使动画循环使用时阻尼或自转 意思是否有惯性
+                controls.enableDamping = true;
+                //动态阻尼系数 就是鼠标拖拽旋转灵敏度
+                //controls.dampingFactor = 0.25;
+                //是否可以缩放
+                controls.enableZoom = true;
+                //是否自动旋转
+                controls.autoRotate = true;
+                //设置相机距离原点的最远距离
+                controls.minDistance  = 200;
+                //设置相机距离原点的最远距离
+                controls.maxDistance  = 1600;
+                //是否开启右键拖拽
+                controls.enablePan = true;
+            }
+
+            function render() {
+                renderer.render( scene, camera );
+            }
+
+            //窗口变动触发的函数
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                render();
+                renderer.setSize( window.innerWidth, window.innerHeight );
+
+            }
+
+            function animate() {
+                //更新控制器
+                controls.update();
+                render();
+
+                //更新性能插件
+                //stats.update();
+                requestAnimationFrame(animate);
+            }
+
+            function draw() {
+                initRender();
+                initScene();
+                initCamera();
+                initLight();
+                initModel();
+                initControls();
+                //initStats();
+
+                animate();
+                window.onresize = onWindowResize;
+            }
+            draw();
+        </script>
+	</body>
+</html>

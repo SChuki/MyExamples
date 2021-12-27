@@ -1,0 +1,721 @@
+<html>
+	<head>
+		<title>简易支架</title>
+		<style>
+			body { margin: 0; }
+            canvas { width: 100%; height: 100% }
+            .label {
+				color: #FFF;
+				font-family: sans-serif;
+				padding: 2px;
+				background: rgba( 0, 0, 0, .6 );
+            }
+		</style>
+	</head>
+	<body>
+         <!--本网页主要是实现液压支架运动-->
+        <script src="../../three.js"></script>
+        <script src="../../OrbitControls.js"></script>
+        <script src="../../../examples/js/libs/dat.gui.min.js"></script>
+        <script src='../../../examples/js/renderers/CSS2DRenderer.js'></script>
+		<script>
+            //"https://cdn.bootcss.com/three.js/r83/three.min.js"
+
+            var renderer = new THREE.WebGLRenderer();
+            renderer.setSize( window.innerWidth, window.innerHeight );
+            document.body.appendChild( renderer.domElement );
+
+            var camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 500 );
+            camera.position.set( 100,100,100 );//从哪个角度上看 ，当从其他轴看时，坐标发生转动，只转一次。
+            camera.lookAt( 0, 0, 0 );
+
+            var scene = new THREE.Scene();
+            scene.background = new THREE.Color( 0xf0f0f0 );
+            
+            //环境光    环境光颜色与网格模型的颜色进行RGB进行乘法运算
+			var ambient = new THREE.AmbientLight(0xffffff);
+            scene.add(ambient);
+
+            //世界坐标系  
+			var axesHelper = new THREE.AxesHelper(250);  
+            scene.add(axesHelper);
+
+            //点光源
+            const light = new THREE.SpotLight( 0xffffff, 1.5 );
+            light.position.set( 0, 500, 2000 );
+            light.angle = Math.PI / 9;
+
+            light.castShadow = true;
+            light.shadow.camera.near = 1000;
+            light.shadow.camera.far = 4000;
+            light.shadow.mapSize.width = 1024;
+            light.shadow.mapSize.height = 1024;
+
+            //scene.add( light );
+
+            let enableSelection = false;
+            const objects = [];
+            const mouse = new THREE.Vector2();
+            raycaster = new THREE.Raycaster();
+
+            var allGroup = new THREE.Group();
+            // 底座网格模型  x y z 长 高 宽
+            var bottom1Mesh = boxMesh(80, 8, 30, 0, 4, 0);
+            bottom1Mesh.name = "底座矩形1";
+            var bottom2Mesh = boxMesh(5, 10, 30, -25,12,0);
+            bottom2Mesh.name = "底座矩形2";
+            var bottomGroup = new THREE.Group();
+            bottomGroup.add(bottom1Mesh, bottom2Mesh);
+            bottomGroup.name = "底座" ;
+
+            // 液压圆柱模型
+            var cylinder11Mesh = cylinderMesh(6, 20, -10, 18, 0);
+            cylinder11Mesh.name = "液压圆柱1_1";
+            var cylinder12Mesh = cylinderMesh(4, 25, -10 ,30, 0);
+            cylinder12Mesh.name = "液压圆柱1_2";
+            var cylinder21Mesh = cylinderMesh(6, 20, 15, 18, 0);
+            cylinder21Mesh.name = "液压圆柱2_1";
+            var cylinder22Mesh = cylinderMesh(4, 25, 15 ,30, 0);
+            cylinder22Mesh.name = "液压圆柱2_2";
+            var cylinderGroup = new THREE.Group();
+            cylinderGroup.add(cylinder11Mesh, cylinder12Mesh,cylinder21Mesh,cylinder22Mesh);
+            cylinderGroup.name = "液压支架" ;
+
+            //顶梁
+            var topBox = new THREE.Object3D();
+			topBox.position.x = 0;
+            topBox.position.y = 0;
+            topBox.position.Z = 0;
+			topBox.add(new THREE.AxesHelper(50));
+
+            var topMesh = boxMesh(80, 8, 30, 15, 44, 0);
+            topMesh.name = "顶梁";
+            topBox.add(topMesh);
+
+             //护帮
+            var guardBoardBox = new THREE.Object3D();
+			guardBoardBox.position.x = 55;
+            guardBoardBox.position.y = 44;
+            guardBoardBox.position.Z = 0;
+            guardBoardBox.rotateZ(-Math.PI/4);//绕x轴旋转π/4Z
+            guardBoardBox.add(new THREE.AxesHelper(150));
+
+            var guardBoardMesh = boxMesh(20, 4, 25, 10,0,0);
+            guardBoardBox.name = "护帮";
+            guardBoardBox.add(guardBoardMesh);
+            topBox.add(guardBoardBox);
+            
+
+            //侧护
+            var sideGuarBox = new THREE.Object3D();
+			sideGuarBox.position.x = -25;
+            sideGuarBox.position.y = 44;
+            sideGuarBox.position.Z = 0;
+            sideGuarBox.rotateZ(Math.PI/4);//绕x轴旋转π/4Z
+			sideGuarBox.add(new THREE.AxesHelper(150));
+
+            var sideGuardMesh = boxMesh(36.2, 8, 30, -18.1,0,0);
+            sideGuarBox.name = "侧护";
+            sideGuarBox.add(sideGuardMesh)
+            topBox.add(sideGuarBox)
+            topBox.name="上顶";
+            
+            //连杆
+            var rodCylinderBox = new THREE.Object3D();
+			rodCylinderBox.position.x = -40;
+            rodCylinderBox.position.y = 8;
+            rodCylinderBox.position.Z = 0;
+            rodCylinderBox.rotateZ(Math.PI/4);//绕x轴旋转π/4Z
+			rodCylinderBox.add(new THREE.AxesHelper(150));
+
+            var rodCylinderMesh = cylinderMesh(3, 15, 0, 7.5, 0);
+            rodCylinderBox.name = "连杆";
+            //rodCylinderMesh.rotateZ(Math.PI/4);//绕x轴旋转π/4Z
+            rodCylinderBox.add(rodCylinderMesh);
+            //scene.add(rodCylinderBox);
+            
+            //主体 
+            var bodyBox = new THREE.Object3D();
+			bodyBox.position.x = 0;
+            bodyBox.position.y = 0;
+            bodyBox.position.Z = 0;
+
+            bodyBox.add(topBox);
+            bodyBox.add(cylinderGroup);
+            bodyBox.add(bottomGroup);
+            bodyBox.add(rodCylinderBox)
+            bodyBox.name = "主体";
+
+            //推移
+
+            var moveBox = new THREE.Object3D();
+			moveBox.position.x = 0;
+            moveBox.position.y = 0;
+            moveBox.position.Z = 0;
+
+            var moveBoxMesh = boxMesh(40, 8, 8, 20,4,0);
+            var moveSphereMesh = sphereMesh(6, 46,4,0);
+            moveBox.add(moveBoxMesh);
+            moveBox.add(moveSphereMesh);
+            moveBox.name ="推杆";
+
+            //支架成组
+            var zhijiaGroup = new THREE.Group();
+            zhijiaGroup.add(moveBox,bodyBox)
+            zhijiaGroup.name = "0";
+            // moveBox.scale.set(1.5,1.5,1.5);//几何体缩放
+            scene.add(zhijiaGroup);
+            objects.push( zhijiaGroup );
+            // moveBox.translateY(0)
+
+
+            // var box=new THREE.BoxGeometry(40,40,40);//创建一个立方体几何对象
+            // var material=new THREE.MeshLambertMaterial({color:0x44BBff});//材质对象
+
+            
+            // var mesh1=new THREE.Mesh(box,material);//网格模型对象
+            // mesh1.scale.set(0.5,0.5,0.5);
+            // var mesh2 = mesh1.clone();//克隆网格模型
+            // // mesh2.translate.x = 30;//网格模型mesh平移
+            // // mesh1.translate.x = 100;//网格模型mesh平移
+            
+            // scene.add(mesh1);//网格模型添加到场景中
+            // scene.add(mesh2);//网格模型添加到场景中
+            // mesh2.translateX(100);//网格模型mesh平移
+
+            //绕向量旋转和平移
+            // var axis = new THREE.Vector3(1, 0, 1);
+            // axis.normalize(); //向量归一化
+            // //沿着axis轴表示方向平移100
+            // zhijiaGroup.translateOnAxis(axis, 50);
+            // zhijiaGroup.rotateOnAxis(axis,1.57)
+
+
+
+
+
+          
+
+            // function onKeyDown( event ) {
+            // console.log("keydown");
+            // enableSelection = ( event.keyCode === 67 ) ? true : false;
+            // }
+
+            // function onKeyUp() {
+            // console.log("keyup");
+            // enableSelection = false;
+            // }
+            var temp_o = null;
+            function onClick( event ) {
+                //恢复颜色
+                if (temp_o != null)
+                {
+                    temp_o.traverse((itme) =>{ if(itme.type == "Mesh" )
+                        {
+                            console.log(itme);
+                            if(itme.material.color != NaN)
+                            {
+                                itme.material.emissive.set( 0x000000);
+                            }
+                        } 
+                    });
+                    temp_o.remove(temp_o.children[2]);
+                }
+                    
+                //该方法将通知 Web 浏览器不要执行与事件关联的默认动作（如果存在这样的动作）。
+                event.preventDefault();
+                //将鼠标位置归一化为设备坐标。x 和 y 方向的取值范围是 (-1 to +1)
+                mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+                mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+                //mouse  在标准化设备坐标中鼠标的二维坐标
+                //camera  射线所来源的摄像机。
+                
+                raycaster.setFromCamera( mouse, camera );
+
+                //检测所有在射线与物体之间，包括或不包括后代的相交部分。
+                //返回结果时，相交部分将按距离进行排序，最近的位于第一个。
+                //objects 检查于射线相交的物体。
+                const intersections = raycaster.intersectObjects( objects, true );
+                if ( intersections.length > 0 ) {
+                    const object = intersections[ 0 ].object;
+                    let tempObject = getScene(object);
+                    temp_o.remove(temp_o.children[2]);
+                    //对选中物体的emissive进行改变
+                    if ( temp_o.children.length === 2 ) {
+                        temp_o.traverse((itme) =>{ if(itme.type == "Mesh" )
+                        {
+                            if(itme.material.color != NaN)
+                            {
+                                itme.material.emissive.set( 0xaaaaaa );
+                                console.log(itme);
+                            }
+                        } 
+                    });
+                    
+                    // 可以正常使用document  判断是否含有div标签
+                    const labelDiv = document.createElement( 'div' );
+                    labelDiv.className = 'label';
+                    labelDiv.id = "demo1"
+                    labelDiv.textContent = '支架编号为:'+(parseInt(temp_o.name)+1).toString();
+                    labelDiv.style.marginTop = '-1em';
+                    labelDiv.style= "color:red";  //内联与内部的主要区别在于大括号和双引号
+                    const labelP1 = document.createElement( 'p' );
+                    labelP1.id = "护帮"
+                    labelP1.textContent = '护帮:'+Brackets[parseInt(temp_o.name)].guardBoardAngle;
+                    const labelP2 = document.createElement( 'p' );
+                    labelP2.id = "立柱"
+                    labelP2.textContent = '立柱:'+Brackets[parseInt(temp_o.name)].cylinderDistance;
+                    const labelP3 = document.createElement( 'p' );
+                    labelP3.id = "推溜"
+                    labelP3.textContent = '推溜:'+Brackets[parseInt(temp_o.name)].moveDistance;
+                    const labelP4 = document.createElement( 'p' );
+                    labelP4.id = "拉架"
+                    labelP4.textContent = '拉架:'+Brackets[parseInt(temp_o.name)].bodyMoveDistance;
+                    labelDiv.appendChild(labelP1);
+                    labelDiv.appendChild(labelP2);
+                    labelDiv.appendChild(labelP3);
+                    labelDiv.appendChild(labelP4);
+                    const earthLabel = new THREE.CSS2DObject( labelDiv );
+                    earthLabel.position.set( 0, -50, 0 );
+                    temp_o.add( earthLabel );
+                    }
+                }
+                //更新gui显示
+                if(temp_o != null && parseInt(temp_o.name)!= OldBracketNum)
+                {
+                    control.操作架号 = parseInt(temp_o.name) + 1;
+                    gui.updateDisplay();
+                }
+
+
+                render();
+            }
+            //通过递归函数来获得支架整体
+            function getScene(object)
+            {
+                
+                if(object.parent.type === "Scene")
+                {
+                    //console.log(temp_o);
+                    temp_o = object;
+                    return temp_o;
+                }else
+                {
+                    getScene(object.parent);
+                }
+            }
+            //面板控制
+            control = new function () {
+                this.护帮操作 = 0;
+                this.立柱操作 = 0;
+                this.推溜操作 = 0;
+                this.拉架操作 = 0;
+                this.操作架号 = 1;
+                this.一键生成 = 1;
+                this.间距控制 = 50;
+                this.成组控制 = false;
+                this.hello = function() {alert("欢迎访问 hangge.com");};  //使用按键触发
+                this.组控成员 = "" //输入触发
+                this.camera_rotation = '[0, 1, 0]';
+            };
+            //使用.listen() 可以从外部改变control的值
+            var gui;//需要修改
+            function addController(){
+            gui = new dat.GUI();
+            gui.add(control, '护帮操作', -3.14, 0.5).step(0.1);
+            gui.add(control, '立柱操作', -5, 10).min(-5).max(10).step(1);
+            gui.add(control, '推溜操作', 0, 30).step(1).listen();
+            gui.add(control, '拉架操作', 0, 30).step(1).listen();
+            gui.add(control, '操作架号', 1, 10).step(1).listen();
+            gui.add(control, '一键生成', 1, 10).step(1).listen();
+            gui.add(control, '间距控制', 25, 100).step(25).listen();
+            gui.add(control, '成组控制').listen();
+            gui.add(control, 'hello'); 
+            gui.add(control, '组控成员').listen();
+            gui.add(control,'camera_rotation', {'不旋转': '[0, 1, 0]', '45度': '[1, 1, 0]', '90度': '[1, 0, 0]'}).onChange(val => {
+                var parse = JSON.parse(val);
+                camera.up.x=parse[0];
+                camera.up.y=parse[1];
+                camera.up.z=parse[2];
+                renderer.render( scene, camera );
+            });
+            gui.remember(control);
+            }
+            
+           
+
+            // 球体网格模型创建函数
+            function sphereMesh(R, x, y, z) {
+            var geometry = new THREE.SphereGeometry(R, 25, 25); //球体几何体
+            var material = new THREE.MeshPhongMaterial({
+                color: 0x00ffff
+            }); //材质对象Material
+            var mesh = new THREE.Mesh(geometry, material); // 创建网格模型对象
+            mesh.position.set(x, y, z);
+            return mesh;
+            }
+
+            // 圆柱体网格模型创建函数
+            function cylinderMesh(R, h, x, y, z) {
+            var geometry = new THREE.CylinderGeometry(R, R, h, 50, 50); //球体几何体
+            var material = new THREE.MeshPhongMaterial({
+                color: 0xff00ff
+            }); //材质对象Material
+            var mesh = new THREE.Mesh(geometry, material); // 创建网格模型对象
+            mesh.position.set(x, y, z);
+            return mesh;
+            }
+
+            // 立方体网格模型创建函数
+            function boxMesh(l, w, h, x,y, z) {
+            var geometry = new THREE.BoxGeometry(l, w, h); //立方体几何体
+            var material = new THREE.MeshPhongMaterial({
+                color: 0x0000ff
+            }); //材质对象Material
+            var mesh = new THREE.Mesh(geometry, material); // 创建网格模型对象
+            mesh.position.set(x, y, z);
+            return mesh;
+            }
+            //定义支架状态数据
+            var bracketStates={
+                guardBoardAngle: 0,  //护帮旋转角度
+                sideGuardAngle: 0,  //侧护旋转角度
+                moveDistance: 0,  //推溜行程
+                bodyMoveDistance: 0,  //拉架行程
+                cylinderDistance: 0,  //立柱移动距离
+                rodAngle: 0,  //连杆旋转角度
+            };
+            var Brackets=new Array();
+            //Brackets[0] =JSON.parse(JSON.stringify(bracketStates)); //使用json实现深拷贝，但是又明显缺点。不能拷贝对象函数。
+            Brackets[0] = Object.create(bracketStates); //create拷贝的数据含有prototype，能够修改属性和方法。
+
+            var OldBracketNum = 0;
+            //余弦定理
+            function cosFunc(a,b,c)
+            {
+                cosA = (b**2+c**2-a**2)/(2*b*c)
+                return cosA;
+            }
+            //支架操作
+            function bracketOperation(NUM,isGroup)
+            {
+               
+                if((NUM-2)!= OldBracketNum)
+                {   console.log(Brackets);
+                    control.护帮操作 = Brackets[NUM-2].guardBoardAngle;
+                    control.立柱操作 =Brackets[NUM-2].cylinderDistance;
+                    control.推溜操作 = Brackets[NUM-2].moveDistance;
+                    control.拉架操作 = Brackets[NUM-2].bodyMoveDistance;
+                    gui.updateDisplay();
+                }
+
+                tempAngle = Brackets[NUM-2].guardBoardAngle;
+                tempY = Brackets[NUM-2].cylinderDistance;
+                tempX = Brackets[NUM-2].moveDistance;
+                moveTempX = Brackets[NUM-2].bodyMoveDistance;
+
+                if(control.护帮操作 != tempAngle)
+                {
+                    console.log("ok");
+                    scene.children[NUM].getObjectByName("护帮").rotation.z = control.护帮操作;
+                    Brackets[NUM-2].guardBoardAngle =control.护帮操作;
+                }
+                
+                //调试时注意rotation.x=N,表示在最初的本地坐标旋转了N度，rotationX(N)表示在现在基础上又旋转了好多度。
+                // oldRotateTop = Math.PI/4;
+                // oldRotateRod = Math.PI/4;
+                oldRotateTop = 0;
+                oldRotateRod = 0;
+                
+                //立柱操作
+                if (control.立柱操作 != tempY) 
+                {
+                    scene.children[NUM].getObjectByName("上顶").translateY(control.立柱操作-tempY);
+                    scene.children[NUM].getObjectByName("液压圆柱1_2").translateY(control.立柱操作-tempY);
+                    scene.children[NUM].getObjectByName("液压圆柱2_2").translateY(control.立柱操作-tempY);
+
+                    let a = 36.2 , b = 15 , c = Math.pow(((control.立柱操作 + 36.2)**2 +15**2),1/2);
+                    x1 = Math.acos(cosFunc(a,b,c));
+                    x2 = Math.abs(Math.atan((36.2 +control.立柱操作)/15));
+                    //console.log(x1+x2);
+                    var temp1 = x1+x2 - Math.PI/2 ;
+                    scene.children[NUM].getObjectByName("连杆").rotation.z = (temp1 - oldRotateRod);
+                    //console.log(temp1 - oldRotateRod);
+                    oldRotateRod = temp1;
+
+                    y1 = Math.acos(cosFunc(b,a,c));
+                    y2 = Math.abs(Math.atan(15/(36.2 +control.立柱操作)));
+                    //console.log(y1+y2);
+                    var temp2 =  Math.PI/2 - y1 - y2;
+                    scene.children[NUM].getObjectByName("侧护").rotation.z = (temp2- oldRotateTop);
+                    //console.log(temp2 - oldRotateTop);
+                    oldRotateTop = temp2;
+                    Brackets[NUM-2].cylinderDistance =control.立柱操作;
+                }
+                if(control.推溜操作 != tempX)
+                {   if(isGroup ==false)
+                    {
+                        scene.children[NUM].getObjectByName("推杆").translateX(control.推溜操作-tempX);
+                        if(moveTempX>0)
+                        {   console.log(moveTempX);
+                            console.log(tempX);
+                            control.拉架操作 = control.拉架操作-(control.推溜操作- tempX);
+                            Brackets[NUM-2].bodyMoveDistance =control.拉架操作;
+                        }
+                        Brackets[NUM-2].moveDistance =control.推溜操作;
+                        moveTempX =control.拉架操作;
+                    }else
+                    {
+                        scene.children[NUM].getObjectByName("推杆").translateX(control.推溜操作-tempX);
+                        if(moveTempX>0)
+                        {
+                            Brackets[NUM-2].bodyMoveDistance =control.拉架操作-(control.推溜操作- tempX);
+                        }
+                        Brackets[NUM-2].moveDistance =control.推溜操作;
+                        moveTempX =control.拉架操作;
+                    }
+                    
+                }
+                if(tempX>0 && control.拉架操作!=moveTempX )
+                {
+                    //console.log(isGroup);
+                    if(isGroup ==false)
+                    {
+                        if(tempX>0)
+                        {
+                            console.log(moveTempX);
+                            console.log(tempX);
+                            scene.children[NUM].getObjectByName("主体").translateX(control.拉架操作 - moveTempX);
+                            control.推溜操作 = control.推溜操作-(control.拉架操作- moveTempX);
+                            gui.updateDisplay();
+                            Brackets[NUM-2].moveDistance =control.推溜操作;
+                            Brackets[NUM-2].bodyMoveDistance =control.拉架操作;
+                        }
+                        
+                    }else
+                    {
+                        scene.children[NUM].getObjectByName("主体").translateX(control.拉架操作 - moveTempX);
+                        // Brackets[NUM-2].moveDistance =control.推溜操作-(control.拉架操作- moveTempX);
+                        Brackets[NUM-2].bodyMoveDistance =control.拉架操作;
+                    }
+                }
+                OldBracketNum = NUM-2;
+                
+            }
+
+            /*校验是否全由8位数字组成 */
+            function isNo(str) {
+                var reg=/^[0-9]{1,3}$/;   /*定义验证表达式*/
+                return reg.test(str);     /*进行验证*/
+            }
+
+
+            // CSS2DRenderer 这是一个2D的render,可以在页面中渲染出一个div标签。
+            labelRenderer = new THREE.CSS2DRenderer();
+            labelRenderer.setSize( window.innerWidth, window.innerHeight );
+            labelRenderer.domElement.style.position = 'absolute';
+            labelRenderer.domElement.style.top = '0px';
+            document.body.appendChild( labelRenderer.domElement );
+
+
+
+
+            var geometry = new THREE.BoxGeometry(20, 20, 20); //创建一个立方体几何对象Geometry
+            var material = new THREE.MeshPhongMaterial({
+            color: 0x0000ff,
+            side: THREE.DoubleSide, //两面可见
+            }); //材质对象Material
+
+            var mesh = new THREE.Mesh(geometry, material); //网格模型对象Mesh
+            //scene.add(mesh);
+            var tempY=0;//立柱操作
+            var tempX=0;//推溜操作
+            var moveTempX = 0; //移架操作
+            var cloneNum = 1;//克隆支架数
+            var tempBool = false;
+            var oldNum = 1;
+            //最大极限为53
+
+            function deepClone(object)
+            {
+            let target = null;
+            if(object.type === 'Mesh' || object.type === 'Sprite'){
+                target =  new THREE.Mesh(object.geometry.clone(false), object.material.clone(false) );
+            }else{
+                target = object.clone( false );
+            }
+            
+            target.name = object.name;
+            copyProperty(target, object);
+
+            if(object.children && object.children.length > 0){
+
+                object.children.forEach( child => {
+                    target.add( this.deepClone(child) );
+                });
+            }
+
+
+            return target; 
+            }
+
+
+            function copyProperty(target, source){
+
+            target.position.x = source.position.x;
+            target.position.y = source.position.y;
+            target.position.z = source.position.z;
+
+            target.rotation.x = source.rotation.x;
+            target.rotation.y = source.rotation.y;
+            target.rotation.z = source.rotation.z;
+
+            target.scale.x = source.scale.x;
+            target.scale.y = source.scale.y;
+            target.scale.z = source.scale.z;
+            }
+            
+
+
+            var animate = function () { //window的api
+                
+                requestAnimationFrame( animate ); //设置60fps，不使用setInterval的原因是可以在求其他请求时不加载
+                //切换控制方式初始化
+                // if(control.成组控制!=tempBool)
+                // {
+                //     if(control.成组控制 != true)
+                //     {
+                //         control.护帮操作 = Brackets[control.操作架号+1-2].guardBoardAngle;
+                //         control.拉架操作 = Brackets[control.操作架号+1-2].bodyMoveDistance;
+                //         control.立柱操作 = Brackets[control.操作架号+1-2].cylinderDistance;
+                //         control.推溜操作 = Brackets[control.操作架号+1-2].moveDistance;
+                //     }
+                //     tempBool =control.成组控制;
+                // }
+                // if(control.操作架号 != oldNum)
+                // {
+                //     console.log("ok");
+                //     control.护帮操作 = Brackets[control.操作架号+1-2].guardBoardAngle;
+                //     control.拉架操作 = Brackets[control.操作架号+1-2].bodyMoveDistance;
+                //     control.立柱操作 = Brackets[control.操作架号+1-2].cylinderDistance;
+                //     control.推溜操作 = Brackets[control.操作架号+1-2].moveDistance;
+                //     oldNum = control.操作架号;
+                // }
+                //一键生成
+                if(control.一键生成!=cloneNum)
+                {
+                    if(control.一键生成>cloneNum)
+                    {
+                        for(let i =1;i<control.一键生成-cloneNum+1;i++)
+                        {
+                            //let zhijiaGroup1 = zhijiaGroup.clone();//克隆网格模型
+                            //由于对网格模型的clone是浅克隆，材质和几何体都是不变的，因此需要变换反射颜色时需要clone材质。
+                            let zhijiaGroup1 = deepClone(zhijiaGroup);//克隆网格模型
+                            zhijiaGroup1.translateZ(control.间距控制*(i+cloneNum-1));//网格模型mesh平移
+                            // moveBox.scale.set(1.5,1.5,1.5);//几何体缩放
+                            zhijiaGroup1.name= Brackets.length.toString();
+                            if ( zhijiaGroup1.children.length === 3 ) {
+                                zhijiaGroup1.remove(zhijiaGroup1.children[2]);
+                            }
+                            scene.add(zhijiaGroup1);
+                            Brackets.push(JSON.parse(JSON.stringify(bracketStates)));
+                            //Brackets.push( Object.create(bracketStates));
+                            objects.push( zhijiaGroup1 );
+                        }
+                    }else
+                    {
+                        for(let i =0; i<cloneNum-control.一键生成;i++)
+                        {
+                            scene.remove(scene.children[2+cloneNum -i-1]);
+                            Brackets.pop();
+                            objects.pop();
+                        }
+                    }
+                    cloneNum = control.一键生成;
+                }
+                //成组控制
+                if(control.成组控制 == true)
+                {
+                    if(control.组控成员!='')
+                    {
+                        let tempArray = control.组控成员.split(',');
+                        for(let j=0;j<tempArray.length;j++)
+                        {
+                            if(tempArray[j].includes('-'))
+                            {
+                                let subTempArray = tempArray[j].split('-');
+                                if(subTempArray.length!=2)
+                                {
+                                    alert("组控成员填写错误，格式例如：7-9");
+                                }else
+                                {
+                                    //console.log(subTempArray[0]);
+                                    //console.log(isNo(subTempArray[0]));
+                                    if(isNo(subTempArray[0])==true && isNo(subTempArray[1])==true)
+                                    {
+                                        for(let startNum = parseInt(subTempArray[0]);startNum <parseInt(subTempArray[1])+1;startNum++ )
+                                        {   //console.log("ok1" +startNum+1);
+                                            bracketOperation(startNum+1,true);
+                                            //console.log("ok");
+                                        }
+                                    }else
+                                    {
+                                        alert("组控成员填写错误，格式例如：7-9");
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                }
+                else //单架控制
+                {
+                    var bracketNum = control.操作架号+1;
+                    bracketOperation(bracketNum,false);
+                }
+				render();
+			};
+            animate();
+            addController();
+            function render() {
+            renderer.render(scene,camera);//执行渲染操作
+            labelRenderer.render( scene, camera );
+            
+			}
+			render();
+			var controls = new THREE.OrbitControls(camera,labelRenderer.domElement);//创建控件对象
+            controls.addEventListener('change', render);//监听鼠标、键盘事件
+
+            document.addEventListener( 'click', onClick, false );
+
+            var angle1 = 0; 
+            var angle2 = 0;
+            function guardBoardRotateDown()
+            {
+                if(angle1-0.1 > 0.8 || angle1-0.1 <= -0.8) {
+					angle1 = angle1;
+                }else
+                {
+                    //angle1 = angle1-0.1
+                }
+                guardBoardBox.rotation.z = angle1;
+                render();
+            }
+            function guardBoardRotateUp()
+            {
+                if(angle1 +0.1 >0.8 || angle1 +0.1 <= -0.8) {
+					angle1 = angle1;
+                }else
+                {
+                  
+                    //angle1 = angle1+0.1
+                }
+                guardBoardBox.rotation.z = angle1;
+                render();
+            }
+
+        </script>
+        <button type = "button" onclick="guardBoardRotateDown()">护帮向下</button>
+        <button type = "button" onclick="guardBoardRotateUp()">护帮向上</button>
+	</body>
+</html>

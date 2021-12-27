@@ -1,0 +1,122 @@
+<html>
+	<head>
+		<title>动画分解</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+        <!-- <video id="video" autoplay controls >
+            <source src="demo.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video> -->
+        <!--本网页主要是 实现动画功能 包括关键帧 剪辑 混合 播放-->
+		<script src="../../three.js"></script>
+		<script src="../../OrbitControls.js"></script>
+		<script>
+            //"https://cdn.bootcss.com/three.js/r83/three.min.js"
+            var scene = new THREE.Scene();  //构建场景对象
+            //设置相机  （视角 、 长宽比 、远剪切面、近剪切面）
+			var camera = new THREE.PerspectiveCamera( 80, window.innerWidth/window.innerHeight, 0.1, 1000 );
+            //设置渲染器
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );//设置渲染面积
+			document.body.appendChild( renderer.domElement );
+			console.log("777");
+            
+			//世界坐标系  
+			var axesHelper = new THREE.AxesHelper(250);  
+			scene.add(axesHelper);
+
+			
+			//环境光    环境光颜色与网格模型的颜色进行RGB进行乘法运算
+			var ambient = new THREE.AmbientLight(0xffffff);
+			scene.add(ambient);
+
+            //矩形平面
+            //var geometry = new THREE.PlaneGeometry(128, 60);
+            var geometry1 = new THREE.BoxGeometry(50, 15, 15);
+            var geometry2 = new THREE.SphereGeometry(30, 20, 20); //球体
+
+            var material1 = new THREE.MeshPhongMaterial({
+            color: 0xff0000,
+            }); //材质对象Material
+            var material2 = new THREE.MeshPhongMaterial({
+            color: 0xff00ff,
+            }); //材质对象Material
+
+            var mesh1 = new THREE.Mesh(geometry1, material1); //网格模型对象Mesh
+            var mesh2 = new THREE.Mesh(geometry2, material2); //网格模型对象Mesh
+
+
+            /**
+            * 创建两个网格模型并设置一个父对象group
+            */
+            var group = new THREE.Group();
+            mesh1.name = "Box"; //网格模型1命名
+            mesh2.name = "Sphere"; //网格模型2命名
+            group.add(mesh1); //网格模型添加到组中
+            group.add(mesh2); //网格模型添加到组中
+            scene.add(group);
+
+            /**
+            * 编辑group子对象网格模型mesh1和mesh2的帧动画数据
+            */
+            // 创建名为Box对象的关键帧数据
+            var times = [0, 10]; //关键帧时间数组，离散的时间点序列
+            var values = [0, 0, 0, 230, 0, 0]; //与时间点对应的值组成的数组
+            // 创建位置关键帧对象：0时刻对应位置0, 0, 0   10时刻对应位置150, 0, 0
+            var posTrack = new THREE.KeyframeTrack('Box.position', times, values); //位置变换 空间坐标 x y z
+            var quaternionTrack = new THREE.KeyframeTrack('Box.quaternion',[0,20],[0,0,0,0,1,1,1,1]) //旋转四元数  x y z w 
+            // 创建颜色关键帧对象：10时刻对应颜色1, 0, 0   20时刻对应颜色0, 0, 1
+            var colorKF = new THREE.KeyframeTrack('Box.material.color', [10, 20], [1, 0, 0, 0, 0, 1]); //颜色变化 r g b
+            // 创建名为Sphere对象的关键帧数据  从0~20时间段，尺寸scale缩放3倍
+            var scaleTrack = new THREE.KeyframeTrack('Sphere.scale', [0, 20], [1, 1, 1, 2.5,2.5, 2.5]);//大小变化 x y z 方向
+
+            // duration决定了默认的播放时间，一般取所有帧动画的最大时间
+            // duration偏小，帧动画数据无法播放完，偏大，播放完帧动画会继续空播放
+            var duration = 20;
+            // 多个帧动画作为元素创建一个剪辑clip对象，命名"default"，持续时间20
+            var clip = new THREE.AnimationClip("default", duration, [posTrack, colorKF, scaleTrack,quaternionTrack]);
+
+            /**
+            * 播放编辑好的关键帧数据 可以加载外部模型
+            */
+            // group作为混合器的参数，可以播放group中所有子对象的帧动画
+            var mixer = new THREE.AnimationMixer(group);
+            // 剪辑clip作为参数，通过混合器clipAction方法返回一个操作对象AnimationAction
+            var AnimationAction = mixer.clipAction(clip);
+            //通过操作Action设置播放方式
+            AnimationAction.timeScale = 20;//默认1，可以调节播放速度
+            // AnimationAction.loop = THREE.LoopOnce; //不循环播放
+            // AnimationAction.clampWhenFinished=true;//暂停在最后一帧播放的状态
+            AnimationAction.play();//开始播放
+
+            // 创建一个时钟对象Clock
+            var clock = new THREE.Clock();
+            // 渲染函数
+            function render() {
+            renderer.render(scene, camera); //执行渲染操作
+            requestAnimationFrame(render); //请求再次执行渲染函数render，渲染下一帧
+
+            //clock.getDelta();//方法获得两帧的时间间隔
+            // 更新混合器相关的时间
+            mixer.update(clock.getDelta());
+            }
+            render();
+            
+			//相机的初始位置时（0，0，0）
+            camera.position.x = 200; 
+            camera.position.y = 200; 
+            camera.position.z = 200; //调整相机的位置 垂直与电脑屏幕方向
+
+			var animate = function () { //window的api
+                requestAnimationFrame( animate ); //设置60fps，不使用setInterval的原因是可以在求其他请求时不加载
+				renderer.render( scene, camera );
+			};
+			animate();
+			var controls = new THREE.OrbitControls(camera,renderer.domElement);//创建控件对象
+        </script>
+        <h1>This is first 3d </h1>
+	</body>
+</html>

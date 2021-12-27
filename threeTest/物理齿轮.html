@@ -1,0 +1,416 @@
+<html>
+	<head>
+		<title>cannon.js齿轮</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+        <!-- <video id="video" autoplay controls >
+            <source src="demo.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video> -->
+        <!--本网页主要是 实现动画功能 包括关键帧 剪辑 混合 播放-->
+
+        <!-- <script src="https://johnson2heng.github.io/three.js-demo/lib/three.js"></script> -->
+
+		<script src="../../three.js"></script>
+		<script src="../../OrbitControls.js"></script>
+        <script src="../../ThreeBSP.js"></script>   
+        <script src="../../SceneUtils.js"></script>   
+        <script src="../../ConvexGeometry.js"></script>
+        <script src="../../ConvexHull.js"></script>  
+        <script src="../../cannon.js"></script>  
+        <script src="../../stats.min.js"></script>
+        <script src="../../dat.gui.min.js"></script>
+
+		<script>
+
+            var world, timeStep=1/60, controls, stats, camera,light, scene, renderer, geometry, pubMaterial, gui;
+            var groundBody, groundMesh, sphereBody, sphereMesh, element;
+            var bodies = [], meshes = [];
+            var meshA, meshB, meshC, meshD, meshE;
+            var bodyA, bodyB, bodyC, bodyD, bodyE;
+            var axleA, axleB, axleC, axleD, axleE;
+            var pos = [-8.5, 0], pos1 = [6.4, 8], pos2 = [8.5, 0], pos3 = [10.6, -13];
+            var radius1 = 2, radius2 = 4, radius3 = 6;
+            var length = 0.5, thickness = 3;
+            var sin375 = 0.075, cos375 = 0.997;
+            var sin75 = 0.131, cos75 = 0.991;
+            var sin15 = 0.259, cos15 = 0.966;
+            var params = {
+                positionX: 0,
+                positionY: 0,
+                speed: 1,
+            }
+
+            //渲染器
+            function initRender() {
+                renderer = new THREE.WebGLRenderer({antialias:true});
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                document.body.appendChild(renderer.domElement);
+            }
+
+            //相机
+            function initCamera() {
+                camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
+                camera.position.x = 13;
+                camera.position.y = 13;
+                camera.position.z = 30;
+                scene.add( camera );
+
+                scene.add(new THREE.AxesHelper(40)); 
+            }
+
+            //场景
+            function initScene() {
+                scene = new THREE.Scene();
+                scene.fog = new THREE.Fog( 0x000000, 0, 500 );
+            }
+
+            //灯光
+            function initLight() {
+                scene.add(new THREE.AmbientLight(0x888888));
+                light = new THREE.DirectionalLight(0xbbbbbb, 1);
+                light.position.set(0, 50, 50);
+                const distance = 200;
+                light.castShadow = true;
+                light.shadow.camera.left = -distance;
+                light.shadow.camera.right = distance;
+                light.shadow.camera.top = distance;
+                light.shadow.camera.bottom = -distance;
+                light.shadow.camera.near = 0;
+                light.shadow.camera.far = 200;
+                light.shadow.mapSize.width = light.shadow.mapSize.height = 2048;
+                scene.add(light);
+            }
+
+            //初始化模型
+            function initModel() {
+                // var pointsArr1 = [[sin15 * radius1, cos15 * radius1, thickness / 2], [sin15 * radius1, cos15 * radius1, -thickness / 2], [-sin15 * radius1, cos15 * radius1, thickness / 2], [-sin15 * radius1, cos15 * radius1, -thickness / 2], [0, radius1 + length, thickness / 2], [0, radius1 + length, -thickness / 2]];
+                // var pointsArr2 = [[sin75 * radius2, cos75 * radius2, thickness / 2], [sin75 * radius2, cos75 * radius2, -thickness / 2], [-sin75 * radius2, cos75 * radius2, thickness / 2], [-sin75 * radius2, cos75 * radius2, -thickness / 2], [0, radius2 + length, thickness / 2], [0, radius2 + length, -thickness / 2]];
+                // var pointsArr3 = [[sin375 * radius3, cos375 * radius3, thickness / 2], [sin375 * radius3, cos375 * radius3, -thickness / 2], [-sin375 * radius3, cos375 * radius3, thickness / 2], [-sin375 * radius3, cos375 * radius3, -thickness / 2], [0, radius3 + length, thickness / 2], [0, radius3 + length, -thickness / 2]];
+                // var points1 = pointsArr1.map(d => new THREE.Vector3(d[0],d[1],d[2]));
+                // var points2 = pointsArr2.map(d => new THREE.Vector3(d[0],d[1],d[2]));
+                // var points3 = pointsArr3.map(d => new THREE.Vector3(d[0],d[1],d[2]));
+                // var triangle1 = new ConvexGeometry(points1);
+                // var triangle2 = new ConvexGeometry(points2);
+                // var triangle3 = new ConvexGeometry(points3);
+                // var triangleMesh1 = new THREE.Mesh(triangle1, new THREE.MeshNormalMaterial());
+                // var triangleMesh2 = new THREE.Mesh(triangle2, new THREE.MeshNormalMaterial());
+                // var triangleMesh3 = new THREE.Mesh(triangle3, new THREE.MeshNormalMaterial());
+                var triangleMesh1 = getTriangleMesh(sin15, cos15, radius1);
+                var triangleMesh2 = getTriangleMesh(sin75, cos75, radius2);
+                var triangleMesh3 = getTriangleMesh(sin375, cos375, radius3);
+                meshA = new THREE.Group();
+                meshB = new THREE.Group();
+                meshC = new THREE.Group();
+                meshD = new THREE.Group();
+                meshE = new THREE.Group();
+                for(let i=0; i<24; i++) {
+                    let angle = Math.PI * 2 * i * 15 / 360;
+                    let itemMesh = triangleMesh2.clone();
+                    itemMesh.rotation.z = angle;
+                    meshA.add(itemMesh.clone());
+                    meshB.add(itemMesh.clone());
+                    meshD.add(itemMesh.clone());
+                }
+                for(let i=0; i<12; i++) {
+                    let angle = Math.PI * 2 * i * 30 / 360;
+                    let itemMesh = triangleMesh1.clone();
+                    itemMesh.rotation.z = angle;
+                    meshC.add(itemMesh.clone());
+                }
+                for(let i=0; i<48; i++) {
+                    let angle = Math.PI * 2 * i * 7.5 / 360;
+                    let itemMesh = triangleMesh3.clone();
+                    itemMesh.rotation.z = angle;
+                    meshE.add(itemMesh.clone());
+                }
+                let cylindMesh1 = new THREE.Mesh(new THREE.CylinderGeometry(radius1,radius1,thickness,32,1), new THREE.MeshNormalMaterial());
+                let cylindMesh2 = new THREE.Mesh(new THREE.CylinderGeometry(radius2,radius2,thickness,32,1), new THREE.MeshNormalMaterial());
+                let cylindMesh3 = new THREE.Mesh(new THREE.CylinderGeometry(radius3,radius3,thickness,32,1), new THREE.MeshNormalMaterial());
+                cylindMesh1.rotation.x = Math.PI / 2;
+                cylindMesh2.rotation.x = Math.PI / 2;
+                cylindMesh3.rotation.x = Math.PI / 2;
+                meshA.add(cylindMesh2.clone());
+                meshB.add(cylindMesh2.clone());
+                meshC.add(cylindMesh1.clone());
+                meshD.add(cylindMesh2.clone());
+                meshE.add(cylindMesh3.clone());
+
+                let cylindMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,10,6,1), new THREE.MeshPhongMaterial({color: 0xffcc77, flatShading: true}));
+                cylindMesh.rotation.x = Math.PI / 2;
+                meshA.add(cylindMesh.clone());
+                meshB.add(cylindMesh.clone());
+                meshC.add(cylindMesh.clone());
+                meshD.add(cylindMesh.clone());
+                meshE.add(cylindMesh.clone());
+
+
+                scene.add(meshA);
+                scene.add(meshB);
+                scene.add(meshC);
+                scene.add(meshD);
+                scene.add(meshE);
+            }
+
+            function getTriangleMesh(sin, cos, radius) {
+                var pointsArr = [[sin * radius, cos * radius, thickness / 2], [sin * radius, cos * radius, -thickness / 2], [-sin * radius, cos * radius, thickness / 2], [-sin * radius, cos * radius, -thickness / 2], [0, radius + length, thickness / 2], [0, radius + length, -thickness / 2]];
+                var points = pointsArr.map(d => new THREE.Vector3(d[0],d[1],d[2]));
+                var triangle = new THREE.ConvexGeometry(points);
+                return new THREE.Mesh(triangle, new THREE.MeshNormalMaterial());
+            }
+
+            
+
+            //初始化物理世界
+            function initCannon() {
+                world = new CANNON.World();
+                world.quatNormalizeSkip = 0;
+                world.quatNormalizeFast = false;
+                world.gravity.set(0, -9.8, 0);
+                world.broadphase = new CANNON.NaiveBroadphase();
+                world.solver.iterations = 20;
+
+                pubMaterial = new CANNON.Material({friction: 1, restitution: 0})
+                
+                let verts = [
+                    new CANNON.Vec3(-sin75 * radius1, -(radius1 + length - cos75 * radius1) / 2, thickness / 2),
+                    new CANNON.Vec3(0, (radius1 + length - cos75 * radius1) / 2, thickness / 2),
+                    new CANNON.Vec3(sin75 * radius1, -(radius1 + length - cos75 * radius1) / 2, thickness),
+                    new CANNON.Vec3(-sin75 * radius1, -(radius1 + length - cos75 * radius1) / 2, -thickness / 2),
+                    new CANNON.Vec3(0, (radius1 + length - cos75 * radius1) / 2, -thickness / 2),
+                    new CANNON.Vec3(sin75 * radius1, -(radius1 + length - cos75 * radius1) / 2, -thickness / 2),
+                ];
+                let faces = [[0,2,1], [3,4,5], [0,1,3], [1,4,3], [5,4,1], [2,5,1], [3,5,2], [3,2,0]];
+                let shape = new CANNON.ConvexPolyhedron(verts, faces);
+
+
+                axleA = new CANNON.Body({
+                    mass: 0,
+                    position: new CANNON.Vec3(pos[0], pos[1], 0),
+                    shape: new CANNON.Cylinder(0.1, 0.1, 1, 3),
+                })
+                axleB = new CANNON.Body({
+                    mass: 0,
+                    position: new CANNON.Vec3(0, 0, 0),
+                    shape: new CANNON.Cylinder(0.1, 0.1, 1, 3),
+                })
+                axleC = new CANNON.Body({
+                    mass: 0,
+                    position: new CANNON.Vec3(pos1[0], pos1[1], 0),
+                    shape: new CANNON.Cylinder(0.1, 0.1, 1, 3),
+                })
+                axleD = new CANNON.Body({
+                    mass: 0,
+                    position: new CANNON.Vec3(pos2[0], pos2[1], 0),
+                    shape: new CANNON.Cylinder(0.1, 0.1, 1, 3),
+                })
+                axleE = new CANNON.Body({
+                    mass: 0,
+                    position: new CANNON.Vec3(pos3[0], pos3[1], 0),
+                    shape: new CANNON.Cylinder(0.1, 0.1, 1, 3),
+                })
+                bodyA = new CANNON.Body({
+                    mass: 1,
+                    position: new CANNON.Vec3(pos[0], pos[1], 0)
+                })
+                bodyB = new CANNON.Body({
+                    mass: 1,
+                    position: new CANNON.Vec3(0, 0, 0)
+                })
+                bodyC = new CANNON.Body({
+                    mass: 1,
+                    position: new CANNON.Vec3(pos1[0], pos1[1], 0)
+                })
+                bodyD = new CANNON.Body({
+                    mass: 1,
+                    position: new CANNON.Vec3(pos2[0], pos2[1], 0)
+                })
+                bodyE = new CANNON.Body({
+                    mass: 1,
+                    position: new CANNON.Vec3(pos3[0], pos3[1], 0)
+                })
+                for(let i=0; i<24; i++) {
+                    let angle = i / 24 * Math.PI * 2;
+                    let x = Math.sin(angle) * (cos75 * radius2 + (radius2 + length - cos75 * radius2) / 2);
+                    let y = Math.cos(angle) * (cos75 * radius2 + (radius2 + length - cos75 * radius2) / 2);
+                    bodyA.addShape(shape, new CANNON.Vec3(x, y, 0), new CANNON.Quaternion().setFromEuler(0, 0, -angle));
+                    bodyB.addShape(shape, new CANNON.Vec3(x, y, 0), new CANNON.Quaternion().setFromEuler(0, 0, -angle));
+                    bodyD.addShape(shape, new CANNON.Vec3(x, y, 0), new CANNON.Quaternion().setFromEuler(0, 0, -angle));
+                }
+                for(let i=0; i<12; i++) {
+                    let angle = i / 12 * Math.PI * 2;
+                    let x = Math.sin(angle) * (cos15 * radius1 + (radius1 + length - cos15 * radius1) / 2);
+                    let y = Math.cos(angle) * (cos15 * radius1 + (radius1 + length - cos15 * radius1) / 2);
+                    bodyC.addShape(shape, new CANNON.Vec3(x, y, 0), new CANNON.Quaternion().setFromEuler(0, 0, -angle));
+                }
+                for(let i=0; i<48; i++) {
+                    let angle = i / 48 * Math.PI * 2;
+                    let x = Math.sin(angle) * (cos375 * radius3 + (radius3 + length - cos375 * radius3) / 2);
+                    let y = Math.cos(angle) * (cos375 * radius3 + (radius3 + length - cos375 * radius3) / 2);
+                    bodyE.addShape(shape, new CANNON.Vec3(x, y, 0), new CANNON.Quaternion().setFromEuler(0, 0, -angle));
+                }
+                bodyA.angularDamping = 0.9;
+                bodyB.angularDamping = 0.9;
+                bodyC.angularDamping = 0.9;
+                bodyD.angularDamping = 0.9;
+                bodyE.angularDamping = 0.9;
+                world.addBody(bodyA);
+                world.addBody(bodyB);
+                world.addBody(bodyC);
+                world.addBody(bodyD);
+                world.addBody(bodyE);
+                var c1 = new CANNON.HingeConstraint(axleA, bodyA, { 
+                    pivotA: new CANNON.Vec3(0, 0, 0),
+                    axisA: new CANNON.Vec3(0, 0, 1),
+                    pivotB: new CANNON.Vec3(0, 0, 0),
+                    axisB: new CANNON.Vec3(0, 0, 1),
+                    maxForce: 100
+                });
+                world.addConstraint(c1);
+                var c2 = new CANNON.HingeConstraint(axleB, bodyB, { 
+                    pivotA: new CANNON.Vec3(0, 0, 0),
+                    axisA: new CANNON.Vec3(0, 0, 1),
+                    pivotB: new CANNON.Vec3(0, 0, 0),
+                    axisB: new CANNON.Vec3(0, 0, 1),
+                    maxForce: 100
+                });
+                world.addConstraint(c2);
+                var c3 = new CANNON.HingeConstraint(axleC, bodyC, { 
+                    pivotA: new CANNON.Vec3(0, 0, 0),
+                    axisA: new CANNON.Vec3(0, 0, 1),
+                    pivotB: new CANNON.Vec3(0, 0, 0),
+                    axisB: new CANNON.Vec3(0, 0, 1),
+                    maxForce: 100
+                });
+                world.addConstraint(c3);
+                var c4 = new CANNON.HingeConstraint(axleD, bodyD, { 
+                    pivotA: new CANNON.Vec3(0, 0, 0),
+                    axisA: new CANNON.Vec3(0, 0, 1),
+                    pivotB: new CANNON.Vec3(0, 0, 0),
+                    axisB: new CANNON.Vec3(0, 0, 1),
+                    maxForce: 100
+                });
+                world.addConstraint(c4);
+                var c5 = new CANNON.HingeConstraint(axleE, bodyE, { 
+                    pivotA: new CANNON.Vec3(0, 0, 0),
+                    axisA: new CANNON.Vec3(0, 0, 1),
+                    pivotB: new CANNON.Vec3(0, 0, 0),
+                    axisB: new CANNON.Vec3(0, 0, 1),
+                    maxForce: 100
+                });
+                world.addConstraint(c5);
+            }
+
+            //控制界面
+            function initGui() {
+                //gui = new GUI();
+                gui = new dat.GUI();
+                gui.add(params, "positionX", -1, 0).onChange(e => {
+                    axleA.position.x = pos[0] + e;
+                    // axleD.position.x = pos2[0] + e;
+                    // axleE.position.x = pos3[0] + e;
+                })
+                gui.add(params, "positionY", -8, 13).onChange(e => {
+                    axleC.position.y = pos1[1] + e;
+                    axleD.position.y = pos2[1] + e;
+                    axleE.position.y = pos3[1] + e;
+                })
+                gui.add(params, "speed", -5, 5)
+            }
+
+            //更新物理世界
+            function updatePhysics() {
+                world.step(timeStep);
+
+                bodyA.angularVelocity.set(0, 0, params.speed);
+
+                meshA.position.copy(bodyA.position);
+                meshA.quaternion.copy(bodyA.quaternion);
+                meshB.position.copy(bodyB.position);
+                meshB.quaternion.copy(bodyB.quaternion);
+                meshC.position.copy(bodyC.position);
+                meshC.quaternion.copy(bodyC.quaternion);
+                meshD.position.copy(bodyD.position);
+                meshD.quaternion.copy(bodyD.quaternion);
+                meshE.position.copy(bodyE.position);
+                meshE.quaternion.copy(bodyE.quaternion);
+            }
+
+            
+
+            //初始化性能插件
+            function initStats() {
+                stats = new Stats();
+                document.body.appendChild(stats.dom);
+            }
+
+            //用户交互插件 鼠标左键按住旋转，右键按住平移，滚轮缩放
+            function initControls() {
+
+                controls = new THREE.OrbitControls( camera, renderer.domElement );
+
+                // 如果使用animate方法时，将此函数删除
+                //controls.addEventListener( 'change', render );
+                // 使动画循环使用时阻尼或自转 意思是否有惯性
+                controls.enableDamping = true;
+                //动态阻尼系数 就是鼠标拖拽旋转灵敏度
+                //controls.dampingFactor = 0.25;
+                //是否可以缩放
+                controls.enableZoom = true;
+                //是否自动旋转
+                controls.autoRotate = false;
+                //设置相机距离原点的最近距离
+                controls.minDistance  = 10;
+                //设置相机距离原点的最远距离
+                controls.maxDistance  = 1600;
+                //是否开启右键拖拽
+                controls.enablePan = true;
+            }
+
+            function render() {
+                updatePhysics();
+                renderer.render( scene, camera );
+            }
+
+            //窗口变动触发的函数
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                render();
+                renderer.setSize( window.innerWidth, window.innerHeight );
+
+            }
+
+            function animate() {
+                //更新控制器
+                controls.update();
+                render();
+
+                //更新性能插件
+                stats.update();
+                globalID = requestAnimationFrame(animate);
+            }
+
+            function draw() {
+                initRender();
+                initScene();
+                initCamera();
+                initLight();
+                initModel();
+                initControls();
+                initStats();
+                initGui();
+                initCannon();
+
+                animate();
+                window.onresize = onWindowResize;
+            }
+            draw();
+        </script>
+	</body>
+</html>

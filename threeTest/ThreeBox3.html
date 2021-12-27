@@ -1,0 +1,167 @@
+<html>
+	<head>
+		<title>数学方法Box3</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+        <!--本网页主要是介绍数学方法BOX3，其主要用于表示物体在世界坐标中的边界框。
+            它方便我们判断物体和物体、物体和平面、物体和点的关系等等-->
+
+		<script src="../../three.js"></script>
+		<script src="../../OrbitControls.js"></script>
+        <script src="../../ThreeBSP.js"></script>   
+        <script src="../../SceneUtils.js"></script>   
+        <script src="../../ConvexGeometry.js"></script>
+        <script src="../../ConvexHull.js"></script>  
+        <script src="../../cannon.js"></script>  
+        <script src="../../stats.min.js"></script>
+        <script src="../../dat.gui.min.js"></script>
+
+		<script>
+
+            var controls, stats, camera,light, scene, renderer;
+            var sphereBox3, sphere,time = 0;
+            var box,box3;
+
+
+
+
+            //渲染器
+            function initRender() {
+                renderer = new THREE.WebGLRenderer({antialias:true});
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                document.body.appendChild(renderer.domElement);
+            }
+
+            //相机
+            function initCamera() {
+                camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
+                camera.position.x = 13;
+                camera.position.y = 13;
+                camera.position.z = 70;
+                scene.add( camera );
+
+                scene.add(new THREE.AxesHelper(40)); 
+            }
+
+            //场景
+            function initScene() {
+                scene = new THREE.Scene();
+                scene.fog = new THREE.Fog( 0x000000, 0, 500 );
+            }
+
+            //灯光
+            function initLight() {
+                scene.add(new THREE.AmbientLight(0x888888));
+                light = new THREE.DirectionalLight(0xbbbbbb, 1);
+                light.position.set(0, 50, 50);
+                const distance = 200;
+                light.castShadow = true;
+                light.shadow.camera.left = -distance;
+                light.shadow.camera.right = distance;
+                light.shadow.camera.top = distance;
+                light.shadow.camera.bottom = -distance;
+                light.shadow.camera.near = 0;
+                light.shadow.camera.far = 200;
+                light.shadow.mapSize.width = light.shadow.mapSize.height = 2048;
+                scene.add(light);
+            }
+
+            //初始化模型
+            function initModel() {
+                var boxGeometry = new THREE.BoxGeometry(30, 30, 30);
+                var sphereGoemetry = new THREE.SphereGeometry(3, 30, 20);
+                var sphereMaterial = new THREE.MeshBasicMaterial();
+                box = this.setMaterial(boxGeometry, 0x0000ff);//先生成一个立方体网格
+                box3 = new THREE.Box3().setFromObject(box);//根据几何体生成包围盒
+                sphere = new THREE.Mesh(sphereGoemetry, sphereMaterial);//在生成一个球形网格
+                scene.add(box);//添加到场景
+                scene.add(sphere);//添加到场景
+            }
+            
+            //设置物体多个材质
+            function setMaterial(goemetry, color) {
+            color = color ? color : 0x00ff00;  // 当没有输入颜色时，采用
+            var material1 = new THREE.MeshBasicMaterial({color: color, transparent: true, opacity: 0.2});
+            var material2 = new THREE.MeshBasicMaterial({color: color, wireframe: true});
+            return THREE.SceneUtils.createMultiMaterialObject(goemetry, [material1, material2]);
+            }
+
+            //初始化性能插件
+            function initStats() {
+                stats = new Stats();
+                document.body.appendChild(stats.dom);
+            }
+
+            //用户交互插件 鼠标左键按住旋转，右键按住平移，滚轮缩放
+            function initControls() {
+
+                controls = new THREE.OrbitControls( camera, renderer.domElement );
+
+                // 如果使用animate方法时，将此函数删除
+                //controls.addEventListener( 'change', render );
+                // 使动画循环使用时阻尼或自转 意思是否有惯性
+                controls.enableDamping = false;
+                //动态阻尼系数 就是鼠标拖拽旋转灵敏度
+                //controls.dampingFactor = 0.25;
+                //是否可以缩放
+                controls.enableZoom = true;
+                //是否自动旋转
+                controls.autoRotate = false;
+                //设置相机距离原点的最近距离
+                controls.minDistance  = 10;
+                //设置相机距离原点的最远距离
+                controls.maxDistance  = 1600;
+                //是否开启右键拖拽
+                controls.enablePan = true;
+            }
+
+            function render() {
+                sphere.position.y = Math.sin(time) * 16 + 8;
+                sphere.position.x = Math.cos(time) * 16 + 8;
+                time = time + 0.02;
+                //动态生成球的包围盒（这里用了包围盒，没有用包围球，边边角角有些出入，不影响大体效果）
+                sphereBox3 = new THREE.Box3().setFromObject(sphere);
+                if(box3.containsBox(sphereBox3)) {
+                            //如果box3包含sphereBox3
+                    sphere.material.color = new THREE.Color(0x00ff00);
+                } else if(box3.intersectsBox(sphereBox3)) {
+                            //如果box3交于sphereBox3
+                    sphere.material.color = new THREE.Color(0xff00ff);
+                } else {
+                            //如果sphereBox3在box3之外
+                    sphere.material.color = new THREE.Color(0xffaa00);
+                }
+                renderer.render(scene, camera);
+                requestAnimationFrame(this.render);
+            }
+
+            //窗口变动触发的函数
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                render();
+                renderer.setSize( window.innerWidth, window.innerHeight );
+            }
+
+            function draw() {
+                initRender();
+                initScene();
+                initCamera();
+                initLight();
+                initModel();
+                initControls();
+                initStats();
+
+                render();
+                window.onresize = onWindowResize;
+            }
+            draw();
+        </script>
+	</body>
+</html>

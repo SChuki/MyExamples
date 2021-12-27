@@ -1,0 +1,141 @@
+<html>
+	<head>
+		<title>瓜子雨</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+        <!-- <video id="video" autoplay controls >
+            <source src="demo.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video> -->
+        <!--本网页主要是 sprite模型 和 模拟森林下雨的场景 的相关内容 使用DataTexture加载-->
+		<script src="../../three.js"></script>
+		<script src="../../OrbitControls.js"></script>
+        <script src="../../ConvexGeometry.js"></script>
+        <script src="../../ConvexHull.js"></script>  
+		<script>
+        'use strict';
+
+        let scene,
+            camera,
+            renderer,
+            controls,
+            watermelon,
+            mouse,
+            mouseX = 0,
+            mouseY = 0,
+            seeds = [];
+
+        let width = window.innerWidth,
+            height = window.innerHeight;
+        
+        let loader = new THREE.TextureLoader();
+
+        let distance_ratio =1 / 100;
+              
+        let radius_ratio=1 / 1500;
+
+        let radius =2000;//2000
+        let pub_rotation=408;
+
+        init();
+        createAsteriods();
+        animate();
+        
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+            camera.lookAt(scene.position);
+            camera.position.z = 10;
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(width, height);
+            renderer.setClearColor(0xF6F7F7);
+            renderer.shadowMap.enabled = true;
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableZoom = false;;
+
+            let  pointLight = new THREE.PointLight(0xffffff);
+            pointLight.position.set(0, 0, 0);
+            pointLight.intensity = 1;
+            pointLight.distance = distance_ratio*100000;
+            scene.add(pointLight);
+
+            let ambientLight = new THREE.AmbientLight(0x333333);
+            scene.add(ambientLight);
+
+            document.body.appendChild(renderer.domElement);
+
+            document.addEventListener('mousemove', onDocumentMouseMove);
+            // document.addEventListener('touchstart', onDocumentTouchStart);
+            // document.addEventListener('touchmove', onDocumentTouchMove);
+
+            window.addEventListener('resize', onResize);
+        }
+
+
+
+        function createAsteriods() {
+            let asteriodsT = loader.load('../asteriod.jpg');
+            //let asteriodsT = loader.load('../coal.jpg');
+            let asteriod = new THREE.Geometry();
+            let asteriodMate = new THREE.MeshBasicMaterial();
+            for(let i=0; i<1000; i++) {
+                let points = [];
+                let rad = Math.random() * radius *radius_ratio;
+                for(let j=0; j<30; j++) {
+                    points.push(new THREE.Vector3(Math.random() * rad, Math.random() * rad, Math.random() * rad))
+                }
+                let asteriodGeom = new THREE.ConvexGeometry(points);
+
+                let asterMesh = new THREE.Mesh(asteriodGeom, asteriodMate);
+                //2.17~3.64 * 14960  = 32450 ~ 54450
+                // let dis = (Math.random() * 22000 + 32450) * this.distance_ratio;
+                let dis = (Math.random() * 1000 + 3450) * distance_ratio;
+                let angle = Math.random() * Math.PI * 2;
+                asterMesh.position.x = dis * Math.sin(angle);
+                asterMesh.position.y = Math.random() * radius * radius_ratio * 4 - radius * radius_ratio * 2;
+                asterMesh.position.z = dis * Math.cos(angle);
+
+                for(let k=0; k<asterMesh.geometry.faces.length; k++) {
+                    asterMesh.geometry.faceVertexUvs[0][k] = [new THREE.Vector2(0, 0), new THREE.Vector2(0, 1), new THREE.Vector2(1, 1)]
+                }
+
+                asterMesh.updateMatrix();
+                asteriod.merge(asterMesh.geometry, asterMesh.matrix);
+            }
+            let mesh = new THREE.Mesh(asteriod, new THREE.MeshLambertMaterial({map: asteriodsT, emissive: 0x000000}));
+            scene.add(mesh);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            render();
+        }
+
+        function render() {
+            renderer.render(scene, camera);
+        }
+
+        function onResize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+
+        function onDocumentMouseMove(event) {
+            mouseX = (event.clientX / width) * 2 - 1;
+            mouseY = -(event.clientY / height) * 2 + 1;
+        }
+
+        </script>
+	</body>
+</html>
